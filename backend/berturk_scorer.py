@@ -1,7 +1,7 @@
 import logging
 import os
 from typing import Any, Literal
-from .models import AnalysisResult, ContentInput, Sentiment
+from .models import AnalysisResult, ContentInput, ScorerInfo, Sentiment
 from .scoring import ContentScorer, RuleBasedTurkishScorer, clamp
 
 logger = logging.getLogger("moodfeed.berturk")
@@ -51,6 +51,27 @@ class BerturkTurkishScorer:
         self._is_loaded = pipeline_instance is not None
         self._tried_loading = pipeline_instance is not None
         self._load_error: str | None = None
+        self._last_inference_error: str | None = None
+
+    def get_info(self) -> ScorerInfo:
+        if not self._tried_loading:
+            self._load_model()
+
+        if self._is_loaded and not self._last_inference_error:
+            return ScorerInfo(
+                name="berturk",
+                label="BERTurk",
+                model_name=self.model_name,
+                fallback=False,
+                fallback_reason=None,
+            )
+        return ScorerInfo(
+            name="rule_based_fallback",
+            label="Kural Tabanlı Fallback",
+            model_name=self.model_name,
+            fallback=True,
+            fallback_reason=self._last_inference_error or self._load_error or "Model kullanılamıyor",
+        )
 
     def _load_model(self) -> bool:
         if self._tried_loading:
@@ -59,7 +80,7 @@ class BerturkTurkishScorer:
         try:
             from transformers import pipeline  # type: ignore[import-untyped]
         except (ImportError, ModuleNotFoundError) as exc:
-            self._load_error = f"Transformers/PyTorch kütüphaneleri bulunamadı ({exc})."
+            self._load_error = f"Transformers/PyTorch kütüphaneleri bulunamadı ({exc.__class__.__name__})."
             logger.warning("BERTurk yüklenemedi: %s", self._load_error)
             return False
 
@@ -76,7 +97,7 @@ class BerturkTurkishScorer:
             logger.info("BERTurk modeli başarıyla hazırlandı: %s", self.model_name)
             return True
         except Exception as exc:
-            self._load_error = f"Model yüklenemedi ({exc})."
+            self._load_error = f"Model yüklenemedi ({exc.__class__.__name__})."
             logger.warning("BERTurk modeli hazırlanamadı: %s", self._load_error)
             return False
 
@@ -134,12 +155,22 @@ class BerturkTurkishScorer:
                 toxicity_score=toxicity_score,
                 negativity_score=negativity_score,
                 reason=reasons,
+                scorer=self.get_info(),
             )
         except Exception as exc:
+            err_msg = f"Inference hatası ({exc.__class__.__name__})"
             logger.warning("BERTurk çıkarımında hata oluştu, fallback çalıştırılıyor: %s", exc)
-            return self._fallback_analysis(content, f"Inference hatası ({exc})")
+            self._last_inference_error = err_msg
+            return self._fallback_analysis(content, err_msg)
 
     def _fallback_analysis(self, content: ContentInput, reason_note: str) -> AnalysisResult:
         result = self.fallback_scorer.analyze(content)
         result.reason.insert(0, f"[Fallback] BERTurk yerine kural tabanlı analiz uygulandı ({reason_note}).")
+        result.scorer = ScorerInfo(
+            name="rule_based_fallback",
+            label="Kural Tabanlı Fallback",
+            model_name=self.model_name,
+            fallback=True,
+            fallback_reason=self._last_inference_error or self._load_error or reason_note,
+        )
         return result

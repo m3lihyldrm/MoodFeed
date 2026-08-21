@@ -28,7 +28,16 @@ def build_response(request: RerankRequest) -> RerankResponse:
     contents, risk = rerank(request.contents, request.interactions, request.enabled, scorer, config)
     global last_results
     last_results = {item.content_id: item for item in contents}
-    return RerankResponse(moodfeed_enabled=request.enabled, spiral_risk=risk, contents=contents, warning="Bu MVP klinik tanı koymaz; sonuçlar kural tabanlı tahminlerdir.")
+    scorer_info = getattr(scorer, "get_info", lambda: None)()
+    return RerankResponse(
+        moodfeed_enabled=request.enabled,
+        spiral_risk=risk,
+        contents=contents,
+        scorer=scorer_info,
+        warning="Bu MVP klinik tanı koymaz; sonuçlar kural tabanlı tahminlerdir."
+        if (scorer_info is None or scorer_info.fallback or scorer_info.name == "rule_based")
+        else "Bu MVP klinik tanı koymaz; sonuçlar makine öğrenmesi destekli tahminlerdir.",
+    )
 
 @app.get("/", include_in_schema=False)
 def demo_page() -> FileResponse:

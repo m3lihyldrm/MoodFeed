@@ -107,7 +107,7 @@ Yanıt; `moodfeed_enabled`, `spiral_risk`, içerik analizleri, özgün/yeni sır
 
 ## Demo akışı
 
-Uygulamayı başlattıktan sonra `http://127.0.0.1:8000/` adresini açın. Demo; örnek akışı, duygu etiketi, toksisite/olumsuzluk skorları ve spiral risk seviyesini gösterir. Her karttaki **“Neden bu sırada?”** düğmesi açıklamayı açar. Sağ üstteki anahtar MoodFeed'i açıp kapatır; kapalı modda özgün sıra korunur.
+Uygulamayı başlattıktan sonra `http://127.0.0.1:8000/` adresini açın. Demo; örnek akışı, aktif analiz/scorer durum rozetini (`⚡ Aktif analiz: Kural Tabanlı`, `🤖 Aktif analiz: BERTurk` veya `⚠️ Aktif analiz: Kural Tabanlı Fallback`), duygu etiketi, toksisite/olumsuzluk skorları ve spiral risk seviyesini gösterir. Toksisite skorunun kural tabanlı hibrit filtreleme ile hesaplandığı arayüzde açıkça belirtilir. Her karttaki **“Neden bu sırada?”** düğmesi açıklamayı açar. Sağ üstteki anahtar MoodFeed'i açıp kapatır; kapalı modda özgün sıra korunur.
 
 ## Testler
 
@@ -116,27 +116,32 @@ python -m compileall backend tests
 python -m pytest -q
 ```
 
-Testler sağlık denetimini, JSON örnek akışını, kural tabanlı ve BERTurk model sözleşmelerini, etiket normalizasyonunu, hata ve fallback mekanizmalarını, sıralama davranışını ve demo sayfasını doğrular.
+Testler sağlık denetimini, JSON örnek akışını, kural tabanlı ve BERTurk model sözleşmelerini, etiket normalizasyonunu, hata ve fallback mekanizmalarını, sıralama davranışını, API response içindeki scorer metadata alanlarını ve demo sayfasını doğrular.
 
 ## Skorlama yönteminin sınırlılıkları
 
-`RuleBasedTurkishScorer`, küçük bir Türkçe anahtar sözcük sözlüğü kullanan açıklanabilir bir başlangıç yöntemidir. İroni ve bağlamı anlayamaz. `BerturkTurkishScorer` ise hazır eğitilmiş `Omar1010/bert-turkish-sentiment` modelini kullanarak duygu çıkarımı yapar. BERTurk bir toksisite modeli olmadığı için saldırgan ifade tespiti kural tabanlı sözlük analiziyle hibrit yürütülür. Sistem klinik değerlendirme veya kesin ruhsal durum tespiti iddiası taşımaz.
+`RuleBasedTurkishScorer`, küçük bir Türkçe anahtar sözcük sözlüğü kullanan açıklanabilir varsayılan başlangıç yöntemidir. İroni ve bağlamı anlayamaz. `BerturkTurkishScorer` ise opsiyonel olarak hazır eğitilmiş `Omar1010/bert-turkish-sentiment` modelini kullanarak duygu çıkarımı yapar. BERTurk bir toksisite modeli değildir; bu nedenle saldırgan ifade ve toksisite tespiti kural tabanlı sözlük analiziyle hibrit yürütülür. Sistem klinik değerlendirme veya kesin ruhsal durum tespiti iddiası taşımaz.
 
 ## Etik ve KVKK yaklaşımı
 
 Örnek veri kurgusaldır. API anahtarı kullanmaz; ham gerçek kullanıcı metni veya etkileşim geçmişini kalıcı olarak saklamaz. Çıktılar yalnızca duygu eğilimi ve olumsuz içerik maruziyeti riski tahminidir. Yanlış sınıflandırma olasılığı vardır; sonuçlar sağlık değerlendirmesi ya da otomatik karar olarak kullanılmamalıdır.
 
-## BERTurk Entegrasyonu ve Fallback Davranışı
+## BERTurk Entegrasyonu, UI Durumu ve Fallback Davranışı
 
-- `ContentScorer` sözleşmesi üzerinden hazır fine-tuned model (`Omar1010/bert-turkish-sentiment`) entegre edilmiştir.
+- `ContentScorer` sözleşmesi üzerinden varsayılan kural tabanlı yönteme ek olarak hazır fine-tuned model (`Omar1010/bert-turkish-sentiment`) entegre edilmiştir.
+- Web demo arayüzünde (`index.html`) ve API yanıtında (`/feed`, `/rerank`) aktif scorer durumu açıkça raporlanır:
+  - **Kural Tabanlı:** `⚡ Aktif analiz: Kural Tabanlı`
+  - **BERTurk Aktif:** `🤖 Aktif analiz: BERTurk (Model: Omar1010/bert-turkish-sentiment)`
+  - **Fallback (Yedek Mod):** `⚠️ Aktif analiz: Kural Tabanlı Fallback (BERTurk yüklenemedi; kural tabanlı analiz kullanılıyor)`
 - Bu entegrasyon bir inference sağlayıcısıdır; kendi veri setimiz üzerinde özel fine-tuning eğitimi veya metrik üretimi yapılmamıştır.
-- `transformers` veya `torch` kütüphanelerinin eksik olması, modelin indirilememesi ya da çıkarım hatası durumunda sistem 500 hatası üretmez; otomatik olarak `RuleBasedTurkishScorer` kural tabanlı analizine fallback yapar ve bu durumu gerekçe listesinde açıkça belirtir.
+- BERTurk bir toksisite modeli olmadığı için toksisite puanı kural tabanlı sözlük filtreleme yöntemiyle hesaplanır.
+- `transformers` veya `torch` kütüphanelerinin eksik olması, modelin indirilememesi ya da çıkarım hatası durumunda sistem 500 hatası üretmez; otomatik olarak `RuleBasedTurkishScorer` kural tabanlı analizine fallback yapar, API response'unda ve UI'da fallback durumunu açıkça belirtir.
 - Gerçek kullanıcı testi ve A/B testi henüz uygulanmamıştır.
 
 ## Prototipin raporla ilişkisi
 
-Bu MVP; üç katmanlı karar yaklaşımını (duygu/tone ve toksisite, spiral riski, açıklanabilir sıralama), kullanıcı kontrolünü, veri minimizasyonunu ve test sürecini somut olarak gösterir. Teknik raporda uygulanmış özellikler yalnızca bu depoda doğrulanabilen bu kapsamla ifade edilmelidir. Ayrıntılar için [mimari belgesine](docs/architecture.md) bakın.
+Bu MVP; üç katmanlı karar yaklaşımını (duygu/tone ve toksisite, spiral riski, açıklanabilir sıralama), kullanıcı kontrolünü, veri minimizasyonunu, aktif model şeffaflığını ve test sürecini somut olarak gösterir. Teknik raporda uygulanmış özellikler yalnızca bu depoda doğrulanabilen bu kapsamla ifade edilmelidir. Ayrıntılar için [mimari belgesine](docs/architecture.md) bakın.
 
 ## GitHub dalı ve doğrulama tabanı
 
-Çalışma dalı: `add-berturk-inference` (temel dal: `moodfeed-final-prep`). Son doğrulanan temel commit `937209e8cd18bcb210517bffa9dfc9f03327ac19` olup teknik rapor durum ayrımı [report-status.md](docs/report-status.md) dosyasında tutulur.
+Çalışma dalı: `add-scorer-status-ui` (önceki dal: `add-berturk-inference`, temel dal: `moodfeed-final-prep`). Son doğrulanan temel commit `937209e8cd18bcb210517bffa9dfc9f03327ac19` olup teknik rapor durum ayrımı [report-status.md](docs/report-status.md) dosyasında tutulur.

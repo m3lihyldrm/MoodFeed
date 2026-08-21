@@ -17,6 +17,13 @@ class Sentiment(BaseModel):
     label: Literal["positive", "neutral", "negative"]
     score: float = Field(ge=0, le=1)
 
+class ScorerInfo(BaseModel):
+    name: Literal["rule_based", "berturk", "rule_based_fallback"]
+    label: str
+    model_name: str | None = None
+    fallback: bool = False
+    fallback_reason: str | None = None
+
 class AnalysisResult(BaseModel):
     content_id: str
     text: str
@@ -24,6 +31,7 @@ class AnalysisResult(BaseModel):
     toxicity_score: float = Field(ge=0, le=1)
     negativity_score: float = Field(ge=0, le=1)
     reason: list[str]
+    scorer: ScorerInfo | None = None
 
 class RankedContent(AnalysisResult):
     original_rank: int = Field(ge=1)
@@ -44,6 +52,7 @@ class RerankResponse(BaseModel):
     spiral_risk: RiskResult
     contents: list[RankedContent]
     warning: str
+    scorer: ScorerInfo | None = None
 
 class ToggleRequest(BaseModel):
     enabled: bool
