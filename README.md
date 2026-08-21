@@ -1,91 +1,112 @@
-# MoodFeed
+# MoodFeed MVP
 
-## MVP: Kurulum, kapsam ve etik notlar
+## MoodFeed nedir?
 
-Bu depo, **çalışan bir FastAPI MVP'si** içerir. MoodFeed; Türkçe sosyal medya akışındaki duygu eğilimi, toksisite ve olumsuz içerik maruziyeti sinyallerini dikkate alan açıklanabilir bir prototiptir.
+MoodFeed, Türkçe sosyal medya akışlarındaki duygu eğilimi, toksisite sinyalleri ve olumsuz içerik maruziyeti riskini dikkate alarak içeriği açıklanabilir biçimde yeniden sıralayan yerel bir prototiptir. TEKNOFEST NSosyal İnovasyon Yarışması 2026 için hazırlanmıştır.
 
-### MVP'de mevcut
+## Problem ve amaç
 
-- Yerel JSON dosyasından kurgusal örnek içerik yükleme.
-- Duygu/tone, toksisite ve olumsuzluk skorları (0–1).
-- Kimliksiz etkileşim skorlarından olumsuz spiral riski hesabı.
-- Açık durumdayken açıklanabilir yeniden sıralama; kapalı durumdayken özgün sırayı koruma.
-- FastAPI otomatik dokümantasyonu (`/docs`) ve pytest testleri.
+Olumsuz veya saldırgan içeriklerin arka arkaya görülmesi deneyimi zorlaştırabilir. MoodFeed, içeriği silmeden ve kullanıcı hesabı hakkında işlem yapmadan daha dengeli bir akış sırası önermeyi gösterir. Her kararın gerekçesini döndürür; kullanıcı özelliği istediği anda kapatabilir.
 
-### Planlanan veya kapsam dışı
+## MVP kapsamı
 
-BERTurk eğitimi/entegrasyonu, gerçek kullanıcı testi, A/B testi, kalıcı kullanıcı tercihleri ve üretim performans sonuçları bu MVP'de uygulanmış değildir. Sistem klinik tanı koymaz, kişinin ruhsal durumunu kesin biçimde bildiğini iddia etmez ve gerçek kişisel veri kullanmaz ya da saklamaz.
+### MVP'de gerçekten çalışan özellikler
 
-## Çalıştırma
+- Yerel `data/sample_feed.json` dosyasından kurgusal örnek içerik yükleme.
+- Deterministik, kural tabanlı Türkçe duygu/tone, toksisite ve olumsuzluk skorlaması.
+- Son en fazla 10 kimliksiz etkileşimden olumsuz spiral riski hesaplama.
+- Risk ve içerik skorlarıyla açıklanabilir yeniden sıralama.
+- MoodFeed kapalıyken özgün sıra ve özgün sıralama puanını koruma.
+- FastAPI endpoint'leri, otomatik `/docs` dokümantasyonu, Docker yapılandırması ve testler.
 
-Python 3.11 ile:
+### Planlanan özellikler
 
-```bash
+- Değerlendirilmiş, yerel BERTurk sağlayıcısı.
+- Gerçek kullanıcı araştırması ve A/B testi.
+- Kalıcı kullanıcı tercihleri ve üretim ortamı gözlemlenebilirliği.
+
+### Kapsam dışı özellikler
+
+Bu prototip klinik tanı koymaz veya kullanıcının ruhsal durumunu kesin olarak bildiğini iddia etmez. Otomatik moderasyon sistemi değildir; içerik silmez, gizlemez veya kullanıcı hesabı üzerinde işlem yapmaz. Gerçek kişisel veri, API anahtarı ve harici LLM/API kullanılmaz.
+
+## Kurulum
+
+Python 3.11 önerilir. Bağımlılıklar yalnızca yerel çalıştırma içindir.
+
+### Windows
+
+```powershell
 python -m venv .venv
-.venv\Scripts\activate
-pip install -r backend/requirements.txt
+.venv\Scripts\Activate.ps1
+python -m pip install -r backend/requirements.txt
 uvicorn backend.main:app --reload
 ```
 
-Servis `http://127.0.0.1:8000`, API dokümantasyonu `http://127.0.0.1:8000/docs` adresindedir.
+### Linux/macOS
 
-## API uç noktaları
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r backend/requirements.txt
+uvicorn backend.main:app --reload
+```
+
+Servis `http://127.0.0.1:8000`, otomatik API dokümantasyonu `http://127.0.0.1:8000/docs` adresinde açılır.
+
+### Docker ile çalıştırma
+
+```bash
+docker compose up --build
+```
+
+Docker API'yi `http://127.0.0.1:8000` adresinde yayınlar.
+
+## API endpoint'leri
 
 | Yöntem | Adres | Açıklama |
 | --- | --- | --- |
 | GET | `/health` | Servis durumunu döndürür. |
-| GET | `/feed` | Mevcut ayarla örnek akışı döndürür. |
+| GET | `/feed` | Ayara göre örnek akışı analiz edip sıralar. |
 | POST | `/analyze` | Tek içeriği analiz eder. |
-| POST | `/rerank` | İçerikleri ve etkileşimleri sıralar. |
-| POST | `/settings/toggle` | Özelliği açar veya kapatır. |
-| GET | `/transparency/{content_id}` | Son işlenen içerik için sıralama gerekçesini döndürür. |
+| POST | `/rerank` | İçerik ve etkileşim listesini sıralar. |
+| POST | `/settings/toggle` | MoodFeed'i açar veya kapatır. |
+| GET | `/transparency/{content_id}` | Son işlenen içeriğin sıralama gerekçesini döndürür. |
 
-Örnek istek:
+### `/analyze` örneği
 
 ```bash
-curl -X POST http://127.0.0.1:8000/analyze -H "Content-Type: application/json" -d "{\"id\":\"demo-1\",\"text\":\"Bugün güzel bir gün\"}"
+curl -X POST http://127.0.0.1:8000/analyze -H "Content-Type: application/json" -d "{\"id\":\"post-001\",\"text\":\"Bugün güzel bir gün\",\"original_score\":0.5}"
 ```
 
-## Skorlama, şeffaflık ve sınırlılıklar
+### `/rerank` örneği
 
-Varsayılan skorlayıcı; küçük Türkçe olumlu, olumsuz ve saldırgan ifade sözlükleri kullanan deterministik bir yöntemdir, makine öğrenmesi modeli değildir. Skorlar 0–1 aralığına sınırlandırılır. Spiral riski son 10 etkileşim için `0.6 × olumsuzluk kayan ortalaması + 0.4 × olumsuz etkileşim oranı` ile hesaplanır: 0.60 ve üstü yüksek, 0.35–0.59 orta, altı düşük risktir.
+```bash
+curl -X POST http://127.0.0.1:8000/rerank -H "Content-Type: application/json" -d "{\"contents\":[{\"id\":\"post-001\",\"text\":\"Bugün güzel bir gün\",\"original_score\":0.5},{\"id\":\"post-002\",\"text\":\"Bu hizmet berbat ve herkes sinirli\",\"original_score\":0.8}],\"interactions\":[{\"negativity_score\":0.9},{\"negativity_score\":0.8}],\"enabled\":true}"
+```
 
-Sıralama katsayıları merkezi `ScoreConfig` alanındadır: toksisite cezası 0.35, riskli olumsuzluk cezası 0.25, çeşitlilik bonusu 0.15. Bunlar yalnızca prototip başlangıç değerleridir. `ContentScorer` sözleşmesi gelecekte değerlendirilmiş BERTurk tabanlı bir sağlayıcıyla değiştirilebilir. Sistem içerik silmez; her sıralama kararının gerekçesini döndürür ve kullanıcı istediğinde özelliği kapatabilir.
-
-Yanlış sınıflandırma olasılığı vardır. Sonuçlar yalnızca duygu eğilimi ve olumsuz içerik maruziyeti riski olarak sunulur; otomatik moderasyon veya sağlık değerlendirmesi olarak kullanılmamalıdır. Ayrıntılı veri akışı ve gizlilik yaklaşımı için [mimari belgesine](docs/architecture.md) bakın.
+Yanıt; `moodfeed_enabled`, `spiral_risk`, içerik analizleri, özgün/yeni sıra, sıralama puanı, Türkçe gerekçeler ve uyarı alanını içerir.
 
 ## Testler
 
 ```bash
-pytest
+python -m compileall backend tests
+python -m pytest -q
 ```
 
-Testler sağlık denetimini, skor sınırlarını, toksisite farkını, spiral riskini, kapalı ayarda özgün sırayı, şeffaflık yanıtını ve geçersiz istekleri doğrular.
+Son doğrulama sonucu: **13 passed**. Testler sağlık denetimini, JSON örnek akışını, skor sınırlarını, toksisite farkını, boş/yüksek spiral riskini, sıralama davranışını, şeffaflık yanıtını, doğrulama hatalarını ve aç/kapat ayarını kapsar.
 
-Son doğrulama: `python -m pytest -q` komutu geliştirme ortamında **7 test geçti** sonucu verdi.
+## Skorlama yönteminin sınırlılıkları
 
-**Ruh Hâli Duyarlı, Şeffaf ve Etik Sosyal Medya İçerik Akışı**
+`RuleBasedTurkishScorer`, küçük bir Türkçe anahtar sözcük sözlüğü kullanan açıklanabilir bir başlangıç yöntemidir; gerçek makine öğrenmesi sonucu değildir. İroni, bağlam, lehçe ve çok anlamlı ifadeleri güvenilir biçimde anlayamaz. Tüm skorlar 0–1 aralığına sınırlandırılır. Spiral riski başlangıç eşikleriyle hesaplanır; ölçülmüş kullanıcı davranışı iddiası taşımaz.
 
-TEKNOFEST NSosyal İnovasyon Yarışması 2026 — **Sosyal Yapay Zekâ** teması kapsamında geliştirilmektedir.
+## Etik ve KVKK yaklaşımı
 
-## Proje Hakkında
+Örnek veri kurgusaldır. API anahtarı kullanmaz; ham gerçek kullanıcı metni veya etkileşim geçmişini kalıcı olarak saklamaz. Çıktılar yalnızca duygu eğilimi ve olumsuz içerik maruziyeti riski tahminidir. Yanlış sınıflandırma olasılığı vardır; sonuçlar sağlık değerlendirmesi ya da otomatik karar olarak kullanılmamalıdır.
 
-MoodFeed, kullanıcının anlık duygu durumunu ve etkileşim örüntüsünü yapay zekâ ile tespit ederek içerik akışını dinamik biçimde yeniden düzenleyen, toksik ve tetikleyici içeriğin akıştaki ağırlığını azaltan ve her karar için gerekçe gösteren bir sistemdir. Amaç kullanıcıyı platformdan uzaklaştırmak değil, aynı süre içinde daha sağlıklı bir içerik dengesi kurmaktır.
+## BERTurk için sonraki adım ve bilinen eksikler
 
-## Mimari
+`ContentScorer` sözleşmesi, mevcut kural tabanlı sağlayıcının ileride BERTurk ile değiştirilmesine imkân verir. Ancak etik veri hazırlama, bağımsız değerlendirme, hata analizi ve yerel model çalışma altyapısı henüz yapılmamıştır. Gerçek kullanıcı testi ve A/B testi de henüz uygulanmamıştır.
 
-Sistem üç katmanlı bir işlem hattı olarak tasarlanmıştır:
+## Prototipin raporla ilişkisi
 
-1. **Duygu / Ton Analizi** — BERTurk tabanlı ince ayarlı sınıflandırıcı
-2. **Toksisite / Moderasyon Skorlaması** — nefret söylemi, taciz ve dezenformasyon riski skorlaması
-3. **Akıllı Yeniden Sıralama ve Şeffaflık** — kullanıcıya açıklanabilir sıralama kararları
-
-## Teknoloji Yığını
-
-- **Backend:** Python 3.11, FastAPI
-- **Frontend:** React, TypeScript
-- **Veritabanı / Önbellek:** PostgreSQL, Redis
-- **ML:** PyTorch, HuggingFace Transformers (BERTurk)
-- **Altyapı:** Docker, GitHub Actions (CI)
-
-## Klasör Yapısı
+Bu MVP; üç katmanlı karar yaklaşımını (duygu/tone ve toksisite, spiral riski, açıklanabilir sıralama), kullanıcı kontrolünü, veri minimizasyonunu ve test sürecini somut olarak gösterir. Teknik raporda uygulanmış özellikler yalnızca bu depoda doğrulanabilen bu kapsamla ifade edilmelidir. Ayrıntılar için [mimari belgesine](docs/architecture.md) bakın.

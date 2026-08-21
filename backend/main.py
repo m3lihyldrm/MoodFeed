@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from .models import AnalysisResult, ContentInput, RerankRequest, RerankResponse, ToggleRequest, ToggleResponse
+from .models import AnalysisResult, ContentInput, RankedContent, RerankRequest, RerankResponse, ToggleRequest, ToggleResponse
 from .reranking import rerank
 from .scoring import RuleBasedTurkishScorer, ScoreConfig
 
@@ -10,7 +10,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 FEED_PATH = ROOT_DIR / "data" / "sample_feed.json"
 scorer, config = RuleBasedTurkishScorer(), ScoreConfig()
 settings = {"enabled": True}
-last_results: dict[str, object] = {}
+last_results: dict[str, RankedContent] = {}
 
 app = FastAPI(title="MoodFeed MVP", version="0.1.0", description="Türkçe odaklı, açıklanabilir içerik akışı prototipi.")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
@@ -47,7 +47,12 @@ def rerank_feed(request: RerankRequest) -> RerankResponse:
 @app.post("/settings/toggle", response_model=ToggleResponse)
 def toggle_settings(request: ToggleRequest) -> ToggleResponse:
     settings["enabled"] = request.enabled
-    return ToggleResponse(enabled=request.enabled, message="MoodFeed özelliği açıldı." if request.enabled else "MoodFeed özelliği kapatıldı; orijinal sıra korunur.")
+    return ToggleResponse(
+        enabled=request.enabled,
+        message="MoodFeed özelliği açıldı."
+        if request.enabled
+        else "MoodFeed özelliği kapatıldı; orijinal akış sırası korunacaktır.",
+    )
 
 @app.get("/transparency/{content_id}")
 def transparency(content_id: str) -> dict[str, object]:

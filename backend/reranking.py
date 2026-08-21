@@ -16,6 +16,17 @@ def rerank(contents: list[ContentInput], interactions: list[Interaction], enable
     prepared: list[RankedContent] = []
     for original_rank, content in enumerate(contents, start=1):
         result = scorer.analyze(content)
+        if not enabled:
+            result.reason.append("MoodFeed kapalı olduğu için orijinal akış sırası korundu.")
+            prepared.append(
+                RankedContent(
+                    **result.model_dump(),
+                    original_rank=original_rank,
+                    new_rank=original_rank,
+                    ranking_score=content.original_score,
+                )
+            )
+            continue
         diversity = 1.0 if result.sentiment.label in {"positive", "neutral"} else 0.0
         score = clamp(content.original_score - config.toxicity_penalty * result.toxicity_score - config.negative_risk_penalty * result.negativity_score * risk.score + config.diversity_bonus * diversity * risk.score)
         prepared.append(RankedContent(**result.model_dump(), original_rank=original_rank, new_rank=original_rank, ranking_score=score))
@@ -32,11 +43,11 @@ def _ranking_reasons(item: RankedContent, risk: RiskResult, new_rank: int) -> li
     if item.toxicity_score > 0:
         reasons.append("Toksisite sinyali nedeniyle sıralama puanı azaltıldı.")
     if risk.level == "high" and item.sentiment.label in {"positive", "neutral"}:
-        reasons.append("Olumsuz maruziyet riski yüksek olduğu için dengeleyici içerik öne alındı.")
+        reasons.append("Olumsuz içerik maruziyeti yüksek olduğu için dengeleyici içerik öne çıkarıldı.")
     if new_rank > item.original_rank:
         reasons.append("Olumsuzluk ve risk sinyalleri nedeniyle içerik geriye çekildi.")
     elif new_rank < item.original_rank:
-        reasons.append("Akış çeşitliliğini artırmak için içerik öne alındı.")
+        reasons.append("Akış çeşitliliğini artırmak için içerik öne çıkarıldı.")
     else:
         reasons.append("İçerik sırası mevcut sinyallerle korundu.")
     return reasons
