@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MoodFeed Demo</title>
+  <style>
+    :root { color-scheme: light; font-family: Arial, sans-serif; color: #172033; background: #f4f7fb; }
+    body { margin: 0; }
+    main { max-width: 880px; margin: 0 auto; padding: 32px 18px 48px; }
+    header, .card, .notice { background: #fff; border-radius: 14px; box-shadow: 0 4px 18px #17203312; padding: 20px; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+    h1 { margin: 0; font-size: 1.8rem; } h2 { margin: 28px 0 12px; font-size: 1.1rem; }
+    .subtle, .notice { color: #516078; line-height: 1.5; }
+    .switch { display: flex; align-items: center; gap: 9px; font-weight: 700; white-space: nowrap; }
+    input { width: 20px; height: 20px; accent-color: #3758e8; }
+    .risk { display: inline-block; margin: 16px 0 4px; padding: 7px 10px; background: #e9efff; border-radius: 999px; font-weight: 700; }
+    #feed { display: grid; gap: 12px; }
+    .card { border-left: 5px solid #7590ed; } .card.negative { border-left-color: #d05d67; } .card.positive { border-left-color: #3a9a74; }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; color: #516078; font-size: .9rem; }
+    .badge { background: #eef1f7; border-radius: 999px; padding: 4px 8px; }
+    button { margin-top: 14px; background: #3758e8; color: #fff; border: 0; border-radius: 8px; padding: 9px 12px; cursor: pointer; font-weight: 700; }
+    button:hover { background: #2945c4; } #reason-panel { display: none; margin-top: 12px; background: #f0f4ff; border-radius: 8px; padding: 12px; }
+    #reason-panel ul { margin: 8px 0 0; padding-left: 20px; } .error { color: #a83242; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div><h1>MoodFeed Demo</h1><p class="subtle">Açıklanabilir, kural tabanlı Türkçe akış prototipi</p></div>
+      <label class="switch"><input id="toggle" type="checkbox" checked> MoodFeed açık</label>
+    </header>
+    <p id="risk" class="risk">Akış yükleniyor…</p>
+    <section class="notice">Bu sistem klinik tanı koymaz. Sonuçlar duygu eğilimi ve içerik maruziyeti sinyalleridir; içerikler silinmez.</section>
+    <h2>Örnek akış</h2>
+    <div id="feed"></div>
+    <section id="reason-panel" aria-live="polite"><strong>Neden bu sırada?</strong><ul id="reasons"></ul></section>
+  </main>
+  <script>
+    const feedElement = document.getElementById("feed");
+    const riskElement = document.getElementById("risk");
+    const toggleElement = document.getElementById("toggle");
+    const panelElement = document.getElementById("reason-panel");
+    const reasonsElement = document.getElementById("reasons");
+
+    function score(value) { return Number(value).toFixed(2); }
+    function addMeta(card, text) { const item = document.createElement("span"); item.className = "badge"; item.textContent = text; card.append(item); }
+    function showReason(reasons) { reasonsElement.replaceChildren(); reasons.forEach((reason) => { const item = document.createElement("li"); item.textContent = reason; reasonsElement.append(item); }); panelElement.style.display = "block"; panelElement.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
+    function renderFeed(data) {
+      feedElement.replaceChildren(); panelElement.style.display = "none"; toggleElement.checked = data.moodfeed_enabled;
+      riskElement.textContent = `Spiral risk: ${data.spiral_risk.level} (${score(data.spiral_risk.score)})`;
+      data.contents.forEach((content) => {
+        const card = document.createElement("article"); card.className = `card ${content.sentiment.label}`;
+        const text = document.createElement("p"); text.textContent = content.text; card.append(text);
+        const meta = document.createElement("div"); meta.className = "meta";
+        addMeta(meta, `Duygu: ${content.sentiment.label}`); addMeta(meta, `Toksisite: ${score(content.toxicity_score)}`); addMeta(meta, `Olumsuzluk: ${score(content.negativity_score)}`); addMeta(meta, `Sıra: ${content.original_rank} → ${content.new_rank}`); card.append(meta);
+        const button = document.createElement("button"); button.textContent = "Neden bu sırada?"; button.addEventListener("click", () => showReason(content.reason)); card.append(button); feedElement.append(card);
+      });
+    }
+    async function loadFeed() {
+      try { const response = await fetch("/feed"); if (!response.ok) throw new Error("Akış yüklenemedi."); renderFeed(await response.json()); }
+      catch (error) { feedElement.textContent = error.message; feedElement.className = "error"; }
+    }
+    toggleElement.addEventListener("change", async () => { await fetch("/settings/toggle", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ enabled: toggleElement.checked }) }); await loadFeed(); });
+    loadFeed();
+  </script>
+</body>
+</html>

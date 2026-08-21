@@ -4,9 +4,13 @@
 
 MoodFeed, Türkçe sosyal medya akışlarındaki duygu eğilimi, toksisite sinyalleri ve olumsuz içerik maruziyeti riskini dikkate alarak içeriği açıklanabilir biçimde yeniden sıralayan yerel bir prototiptir. TEKNOFEST NSosyal İnovasyon Yarışması 2026 için hazırlanmıştır.
 
-## Problem ve amaç
+## Problem
 
 Olumsuz veya saldırgan içeriklerin arka arkaya görülmesi deneyimi zorlaştırabilir. MoodFeed, içeriği silmeden ve kullanıcı hesabı hakkında işlem yapmadan daha dengeli bir akış sırası önermeyi gösterir. Her kararın gerekçesini döndürür; kullanıcı özelliği istediği anda kapatabilir.
+
+## Çözüm
+
+MVP, örnek içerikleri yerel JSON dosyasından alır; kural tabanlı duygu/tone ve toksisite skorları üretir; son etkileşimlerin olumsuzluk sinyalinden spiral riski hesaplar. MoodFeed açıksa içeriği silmeden yeniden sıralar, kapalıysa özgün sırayı korur. Tarayıcı demosu bu sonucu ve Türkçe gerekçeleri görünür kılar.
 
 ## MVP kapsamı
 
@@ -18,6 +22,7 @@ Olumsuz veya saldırgan içeriklerin arka arkaya görülmesi deneyimi zorlaştı
 - Risk ve içerik skorlarıyla açıklanabilir yeniden sıralama.
 - MoodFeed kapalıyken özgün sıra ve özgün sıralama puanını koruma.
 - FastAPI endpoint'leri, otomatik `/docs` dokümantasyonu, Docker yapılandırması ve testler.
+- FastAPI tarafından sunulan, bağımlılıksız HTML/CSS/JavaScript demo arayüzü.
 
 ### Planlanan özellikler
 
@@ -86,6 +91,10 @@ curl -X POST http://127.0.0.1:8000/rerank -H "Content-Type: application/json" -d
 
 Yanıt; `moodfeed_enabled`, `spiral_risk`, içerik analizleri, özgün/yeni sıra, sıralama puanı, Türkçe gerekçeler ve uyarı alanını içerir.
 
+## Demo akışı
+
+Uygulamayı başlattıktan sonra `http://127.0.0.1:8000/` adresini açın. Demo; örnek akışı, duygu etiketi, toksisite/olumsuzluk skorları ve spiral risk seviyesini gösterir. Her karttaki **“Neden bu sırada?”** düğmesi açıklamayı açar. Sağ üstteki anahtar MoodFeed'i açıp kapatır; kapalı modda özgün sıra korunur.
+
 ## Testler
 
 ```bash
@@ -93,7 +102,7 @@ python -m compileall backend tests
 python -m pytest -q
 ```
 
-Son doğrulama sonucu: **13 passed**. Testler sağlık denetimini, JSON örnek akışını, skor sınırlarını, toksisite farkını, boş/yüksek spiral riskini, sıralama davranışını, şeffaflık yanıtını, doğrulama hatalarını ve aç/kapat ayarını kapsar.
+Son doğrulama sonucu: **14 passed**. Testler sağlık denetimini, JSON örnek akışını, skor sınırlarını, toksisite farkını, boş/yüksek spiral riskini, sıralama davranışını, şeffaflık yanıtını, doğrulama hatalarını, aç/kapat ayarını ve demo sayfasını kapsar.
 
 ## Skorlama yönteminin sınırlılıkları
 
@@ -110,3 +119,7 @@ Son doğrulama sonucu: **13 passed**. Testler sağlık denetimini, JSON örnek a
 ## Prototipin raporla ilişkisi
 
 Bu MVP; üç katmanlı karar yaklaşımını (duygu/tone ve toksisite, spiral riski, açıklanabilir sıralama), kullanıcı kontrolünü, veri minimizasyonunu ve test sürecini somut olarak gösterir. Teknik raporda uygulanmış özellikler yalnızca bu depoda doğrulanabilen bu kapsamla ifade edilmelidir. Ayrıntılar için [mimari belgesine](docs/architecture.md) bakın.
+
+## GitHub dalı ve doğrulama tabanı
+
+Final hazırlık dalı: `moodfeed-final-prep`. Bu çalışmanın başladığı son doğrulanmış MVP commit'i `937209e8cd18bcb210517bffa9dfc9f03327ac19` olup teknik rapor durum ayrımı [report-status.md](docs/report-status.md) dosyasında tutulur.
