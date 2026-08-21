@@ -34,11 +34,11 @@ MVP, örnek içerikleri yerel JSON dosyasından alır; kural tabanlı duygu/tone
 
 Bu prototip klinik tanı koymaz veya kullanıcının ruhsal durumunu kesin olarak bildiğini iddia etmez. Otomatik moderasyon sistemi değildir; içerik silmez, gizlemez veya kullanıcı hesabı üzerinde işlem yapmaz. Gerçek kişisel veri, API anahtarı ve harici LLM/API kullanılmaz.
 
-## Kurulum
+## Kurulum ve Çalıştırma
 
-Python 3.11 önerilir. Bağımlılıklar yalnızca yerel çalıştırma içindir.
+Python 3.11 önerilir. Temel çalıştırma için temel bağımlılıklar yeterlidir:
 
-### Windows
+### Temel Kurulum (Kural Tabanlı MVP)
 
 ```powershell
 python -m venv .venv
@@ -47,14 +47,28 @@ python -m pip install -r backend/requirements.txt
 uvicorn backend.main:app --reload
 ```
 
-### Linux/macOS
+### Opsiyonel BERTurk ML Bağımlılıkları
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r backend/requirements.txt
-uvicorn backend.main:app --reload
+BERTurk duygu analizi modelini yerel olarak çalıştırmak için ek ML paketlerini kurabilirsiniz:
+
+```powershell
+python -m pip install -r backend/requirements-ml.txt
 ```
+
+### Scorer Yapılandırması (Environment Variables)
+
+- **Varsayılan Mod (Kural Tabanlı):**
+  ```powershell
+  $env:MOODFEED_SCORER="rule_based"
+  ```
+- **BERTurk Modu:**
+  ```powershell
+  $env:MOODFEED_SCORER="berturk"
+  ```
+- **Özel Model Belirtme (Opsiyonel):**
+  ```powershell
+  $env:MOODFEED_BERTURK_MODEL="Omar1010/bert-turkish-sentiment"
+  ```
 
 Servis `http://127.0.0.1:8000`, otomatik API dokümantasyonu `http://127.0.0.1:8000/docs` adresinde açılır.
 
@@ -102,19 +116,22 @@ python -m compileall backend tests
 python -m pytest -q
 ```
 
-Son doğrulama sonucu: **14 passed**. Testler sağlık denetimini, JSON örnek akışını, skor sınırlarını, toksisite farkını, boş/yüksek spiral riskini, sıralama davranışını, şeffaflık yanıtını, doğrulama hatalarını, aç/kapat ayarını ve demo sayfasını kapsar.
+Testler sağlık denetimini, JSON örnek akışını, kural tabanlı ve BERTurk model sözleşmelerini, etiket normalizasyonunu, hata ve fallback mekanizmalarını, sıralama davranışını ve demo sayfasını doğrular.
 
 ## Skorlama yönteminin sınırlılıkları
 
-`RuleBasedTurkishScorer`, küçük bir Türkçe anahtar sözcük sözlüğü kullanan açıklanabilir bir başlangıç yöntemidir; gerçek makine öğrenmesi sonucu değildir. İroni, bağlam, lehçe ve çok anlamlı ifadeleri güvenilir biçimde anlayamaz. Tüm skorlar 0–1 aralığına sınırlandırılır. Spiral riski başlangıç eşikleriyle hesaplanır; ölçülmüş kullanıcı davranışı iddiası taşımaz.
+`RuleBasedTurkishScorer`, küçük bir Türkçe anahtar sözcük sözlüğü kullanan açıklanabilir bir başlangıç yöntemidir. İroni ve bağlamı anlayamaz. `BerturkTurkishScorer` ise hazır eğitilmiş `Omar1010/bert-turkish-sentiment` modelini kullanarak duygu çıkarımı yapar. BERTurk bir toksisite modeli olmadığı için saldırgan ifade tespiti kural tabanlı sözlük analiziyle hibrit yürütülür. Sistem klinik değerlendirme veya kesin ruhsal durum tespiti iddiası taşımaz.
 
 ## Etik ve KVKK yaklaşımı
 
 Örnek veri kurgusaldır. API anahtarı kullanmaz; ham gerçek kullanıcı metni veya etkileşim geçmişini kalıcı olarak saklamaz. Çıktılar yalnızca duygu eğilimi ve olumsuz içerik maruziyeti riski tahminidir. Yanlış sınıflandırma olasılığı vardır; sonuçlar sağlık değerlendirmesi ya da otomatik karar olarak kullanılmamalıdır.
 
-## BERTurk için sonraki adım ve bilinen eksikler
+## BERTurk Entegrasyonu ve Fallback Davranışı
 
-`ContentScorer` sözleşmesi, mevcut kural tabanlı sağlayıcının ileride BERTurk ile değiştirilmesine imkân verir. Ancak etik veri hazırlama, bağımsız değerlendirme, hata analizi ve yerel model çalışma altyapısı henüz yapılmamıştır. Gerçek kullanıcı testi ve A/B testi de henüz uygulanmamıştır.
+- `ContentScorer` sözleşmesi üzerinden hazır fine-tuned model (`Omar1010/bert-turkish-sentiment`) entegre edilmiştir.
+- Bu entegrasyon bir inference sağlayıcısıdır; kendi veri setimiz üzerinde özel fine-tuning eğitimi veya metrik üretimi yapılmamıştır.
+- `transformers` veya `torch` kütüphanelerinin eksik olması, modelin indirilememesi ya da çıkarım hatası durumunda sistem 500 hatası üretmez; otomatik olarak `RuleBasedTurkishScorer` kural tabanlı analizine fallback yapar ve bu durumu gerekçe listesinde açıkça belirtir.
+- Gerçek kullanıcı testi ve A/B testi henüz uygulanmamıştır.
 
 ## Prototipin raporla ilişkisi
 
@@ -122,4 +139,4 @@ Bu MVP; üç katmanlı karar yaklaşımını (duygu/tone ve toksisite, spiral ri
 
 ## GitHub dalı ve doğrulama tabanı
 
-Final hazırlık dalı: `moodfeed-final-prep`. Bu çalışmanın başladığı son doğrulanmış MVP commit'i `937209e8cd18bcb210517bffa9dfc9f03327ac19` olup teknik rapor durum ayrımı [report-status.md](docs/report-status.md) dosyasında tutulur.
+Çalışma dalı: `add-berturk-inference` (temel dal: `moodfeed-final-prep`). Son doğrulanan temel commit `937209e8cd18bcb210517bffa9dfc9f03327ac19` olup teknik rapor durum ayrımı [report-status.md](docs/report-status.md) dosyasında tutulur.

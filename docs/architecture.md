@@ -20,4 +20,4 @@ Her yanıtta, toksisite cezasını, dengeleyici içeriğin öne çıkarılmasın
 
 `POST /settings/toggle` ayarı değiştirir. Özellik kapalıyken özgün sıra ve özgün sıralama puanı aynen korunur; yanıtta bunun gerekçesi açıkça verilir. Ham metin veya etkileşimler kalıcı saklanmaz; bu sistem klinik tanı koymaz ve otomatik moderasyon değildir.
 
-`ContentScorer` sözleşmesi, ileride değerlendirilmiş yerel BERTurk uyarlamasıyla değiştirilebilir. MVP’de BERTurk eğitimi, gerçek kullanıcı testi ve A/B testi yoktur.
+`ContentScorer` sözleşmesi hem varsayılan `RuleBasedTurkishScorer` hem de opsiyonel `BerturkTurkishScorer` sağlayıcısını destekler. BERTurk sağlayıcısı hazır fine-tuned model (`Omar1010/bert-turkish-sentiment`) üzerinden duygu çıkarımı yapar. BERTurk bir toksisite modeli olmadığı için toksisite analizi kural tabanlı sözlük ile hibrit olarak yürütülür. Model veya ML kütüphaneleri bulunamazsa sistem hata vermeden kural tabanlı yönteme otomatik fallback yapar. Depoda özel model eğitimi veya metrik iddiası bulunmamaktadır.

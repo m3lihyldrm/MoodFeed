@@ -5,12 +5,12 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from .models import AnalysisResult, ContentInput, RankedContent, RerankRequest, RerankResponse, ToggleRequest, ToggleResponse
 from .reranking import rerank
-from .scoring import RuleBasedTurkishScorer, ScoreConfig
+from .scoring import ScoreConfig, get_scorer
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 FEED_PATH = ROOT_DIR / "data" / "sample_feed.json"
 DEMO_PATH = ROOT_DIR / "frontend" / "index.html"
-scorer, config = RuleBasedTurkishScorer(), ScoreConfig()
+scorer, config = get_scorer(), ScoreConfig()
 settings = {"enabled": True}
 last_results: dict[str, RankedContent] = {}
 

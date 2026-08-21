@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass
 from typing import Protocol
 from .models import AnalysisResult, ContentInput, Sentiment
@@ -46,3 +47,11 @@ class RuleBasedTurkishScorer:
     @staticmethod
     def _count_hits(text: str, vocabulary: frozenset[str]) -> int:
         return sum(1 for word in vocabulary if word in text)
+
+def get_scorer(scorer_type: str | None = None) -> ContentScorer:
+    """Seçilen veya MOODFEED_SCORER ortam değişkeninde belirtilen scorer sağlayıcısını döndürür."""
+    mode = (scorer_type or os.getenv("MOODFEED_SCORER", "rule_based")).strip().lower()
+    if mode == "berturk":
+        from .berturk_scorer import BerturkTurkishScorer
+        return BerturkTurkishScorer()
+    return RuleBasedTurkishScorer()

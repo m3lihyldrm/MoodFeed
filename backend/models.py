@@ -1,9 +1,11 @@
 from typing import Literal
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, Field
 
 class ContentInput(BaseModel):
     """Skorlanacak sosyal medya içeriği."""
-    id: str = Field(min_length=1)
+    model_config = {"populate_by_name": True}
+
+    id: str = Field(min_length=1, validation_alias=AliasChoices("id", "content_id"))
     text: str = Field(min_length=1, max_length=2_000)
     original_score: float = Field(default=0.5, ge=0, le=1)
 
