@@ -20,4 +20,9 @@ Her yanıtta, toksisite cezasını, dengeleyici içeriğin öne çıkarılmasın
 
 `POST /settings/toggle` ayarı değiştirir. Özellik kapalıyken özgün sıra ve özgün sıralama puanı aynen korunur; yanıtta bunun gerekçesi açıkça verilir. Ham metin veya etkileşimler kalıcı saklanmaz; bu sistem klinik tanı koymaz ve otomatik moderasyon değildir.
 
-`ContentScorer` sözleşmesi, ileride değerlendirilmiş yerel BERTurk uyarlamasıyla değiştirilebilir. MVP’de BERTurk eğitimi, gerçek kullanıcı testi ve A/B testi yoktur.
+`ContentScorer` sözleşmesi hem varsayılan `RuleBasedTurkishScorer` hem de opsiyonel `BerturkTurkishScorer` sağlayıcısını destekler:
+- **Varsayılan Mod:** `RuleBasedTurkishScorer` harici kütüphane gerektirmeyen deterministik sözlük yaklaşımıdır.
+- **Opsiyonel ML Modu:** `BerturkTurkishScorer`, hazır fine-tuned model (`Omar1010/bert-turkish-sentiment`) üzerinden duygu çıkarımı yapar.
+- **Hibrit Toksisite Ayrımı:** BERTurk bir toksisite modeli olmadığı için saldırgan ifade ve toksisite puanı kural tabanlı sözlük ile hibrit yürütülür.
+- **Dinamik Fallback:** Model veya ML kütüphaneleri bulunamazsa veya çıkarım hatası olursa sistem 500 hatası üretmeden kural tabanlı yönteme otomatik fallback yapar.
+- **UI ve API Görünürlüğü:** Aktif analiz sağlayıcısı ve fallback durumu hem `/feed` ve `/rerank` API yanıtındaki `ScorerInfo` modelinde hem de tarayıcı demosu (`index.html`) arayüzündeki aktif model rozetinde kullanıcılara şeffaf biçimde sunulur. Depoda özel model eğitimi veya metrik iddiası bulunmamaktadır.

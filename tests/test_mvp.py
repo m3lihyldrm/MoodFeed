@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 from backend.main import app
 from backend.models import ContentInput, Interaction
@@ -87,3 +88,20 @@ def test_rerank_keeps_tied_scores_in_source_order() -> None:
     contents = [ContentInput(id="one", text="nötr", original_score=0.5), ContentInput(id="two", text="nötr", original_score=0.5)]
     output, _ = rerank(contents, [], True, RuleBasedTurkishScorer(), ScoreConfig())
     assert [item.content_id for item in output] == ["one", "two"]
+
+def test_feed_and_rerank_include_scorer_info() -> None:
+    with patch("backend.main.scorer", RuleBasedTurkishScorer()):
+        response = client.get("/feed")
+        assert response.status_code == 200
+        body = response.json()
+        assert "scorer" in body
+        assert body["scorer"]["name"] == "rule_based"
+        assert body["scorer"]["label"] == "Kural Tabanlı"
+        assert body["scorer"]["fallback"] is False
+        assert body["scorer"]["fallback_reason"] is None
+
+        rerank_res = client.post("/rerank", json={"contents": [{"id": "s-1", "text": "güzel gün", "original_score": 0.5}], "enabled": True})
+        assert rerank_res.status_code == 200
+        rerank_body = rerank_res.json()
+        assert "scorer" in rerank_body
+        assert rerank_body["scorer"]["name"] == "rule_based"
