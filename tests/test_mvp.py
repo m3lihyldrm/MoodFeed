@@ -72,6 +72,11 @@ def test_feed_returns_sample_data() -> None:
     assert response.status_code == 200
     assert {item["content_id"] for item in response.json()["contents"]} == {"post-001", "post-002", "post-003", "post-004"}
 
+def test_demo_page_is_available() -> None:
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "MoodFeed Demo" in response.text
+
 def test_feed_when_disabled_preserves_sample_source_order() -> None:
     client.post("/settings/toggle", json={"enabled": False})
     response = client.get("/feed")
