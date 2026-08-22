@@ -60,10 +60,13 @@ class BerturkTurkishScorer:
         if self._is_loaded and not self._last_inference_error:
             return ScorerInfo(
                 name="berturk",
-                label="BERTurk",
+                label="BERTurk (Deneysel Çıkarım)",
                 model_name=self.model_name,
                 fallback=False,
                 fallback_reason=None,
+                mode="berturk",
+                is_experimental=True,
+                loaded=True,
             )
         return ScorerInfo(
             name="rule_based_fallback",
@@ -71,6 +74,9 @@ class BerturkTurkishScorer:
             model_name=self.model_name,
             fallback=True,
             fallback_reason=self._last_inference_error or self._load_error or "Model kullanılamıyor",
+            mode="rule_based_fallback",
+            is_experimental=False,
+            loaded=False,
         )
 
     def _load_model(self) -> bool:
@@ -141,11 +147,18 @@ class BerturkTurkishScorer:
             toxicity_score = clamp(toxic_hits * 0.35)
             negativity_score = clamp(negative_prob * 0.7 + toxicity_score * 0.3)
 
+            if toxicity_score > 0:
+                toxic_desc = "Saldırgan ifade sinyalleri bulundu."
+            elif any(word in normalized_text for word in self.fallback_scorer.toxic_context_words):
+                toxic_desc = "Metin saldırgan içerikten söz ediyor; ancak doğrudan bir kişiye saldırı içermiyor."
+            else:
+                toxic_desc = "Saldırgan ifade sinyali bulunmadı."
+
             tr_labels = {"positive": "olumlu", "negative": "olumsuz", "neutral": "nötr"}
             reasons = [
-                f"BERTurk ({self.model_name}) ile %{sentiment_score * 100:.1f} güvenle {tr_labels[best_label]} duygu eğilimi algılandı.",
-                "Saldırgan ifade sinyalleri bulundu." if toxicity_score > 0 else "Saldırgan ifade sinyali bulunmadı.",
-                "Bu sonuç makine öğrenmesi destekli bir prototip tahminidir; klinik değerlendirme değildir.",
+                f"[Deneysel BERTurk] BERTurk ({self.model_name}) ile %{sentiment_score * 100:.1f} güvenle {tr_labels[best_label]} duygu eğilimi algılandı.",
+                toxic_desc,
+                "Bu sonuç makine öğrenmesi destekli deneysel bir prototip tahminidir; kesin doğruluk veya klinik değerlendirme taşımaz.",
             ]
 
             return AnalysisResult(
@@ -165,12 +178,15 @@ class BerturkTurkishScorer:
 
     def _fallback_analysis(self, content: ContentInput, reason_note: str) -> AnalysisResult:
         result = self.fallback_scorer.analyze(content)
-        result.reason.insert(0, f"[Fallback] BERTurk yerine kural tabanlı analiz uygulandı ({reason_note}).")
+        result.reason.insert(0, f"[Kural Tabanlı Fallback] BERTurk yerine kural tabanlı analiz uygulandı ({reason_note}).")
         result.scorer = ScorerInfo(
             name="rule_based_fallback",
             label="Kural Tabanlı Fallback",
             model_name=self.model_name,
             fallback=True,
             fallback_reason=self._last_inference_error or self._load_error or reason_note,
+            mode="rule_based_fallback",
+            is_experimental=False,
+            loaded=False,
         )
         return result

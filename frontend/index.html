@@ -1,104 +1,2853 @@
 <!doctype html>
-<html lang="tr">
+<html lang="tr" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MoodFeed Demo</title>
+  <title>MoodFeed Demo — Akışını Daha Anlaşılır Gör. Kontrolü Sende Tut.</title>
+  <meta name="description" content="MoodFeed, içerik akışındaki tekrar ve yoğunluk sinyallerini görünür kılan, kullanıcı kontrolünde çalışan açıklanabilir içerik düzenleyicidir.">
   <style>
-    :root { color-scheme: light; font-family: Arial, sans-serif; color: #172033; background: #f4f7fb; }
-    body { margin: 0; }
-    main { max-width: 880px; margin: 0 auto; padding: 32px 18px 48px; }
-    header, .card, .notice { background: #fff; border-radius: 14px; box-shadow: 0 4px 18px #17203312; padding: 20px; }
-    header { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
-    h1 { margin: 0; font-size: 1.8rem; } h2 { margin: 28px 0 12px; font-size: 1.1rem; }
-    .subtle, .notice { color: #516078; line-height: 1.5; }
-    .subtle-note { display: block; margin-top: 6px; font-size: .85rem; color: #6b7a90; }
-    .switch { display: flex; align-items: center; gap: 9px; font-weight: 700; white-space: nowrap; }
-    input { width: 20px; height: 20px; accent-color: #3758e8; }
-    .status-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 16px 0 4px; }
-    .risk { display: inline-block; padding: 7px 12px; background: #e9efff; border-radius: 999px; font-weight: 700; }
-    .scorer-badge { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; font-weight: 700; font-size: .9rem; background: #eef2ff; color: #2d46b9; border: 1px solid #d4ddfc; }
-    .scorer-badge.berturk { background: #eaf8f0; color: #1e7041; border-color: #c2ecd4; }
-    .scorer-badge.fallback { background: #fff8eb; color: #b45309; border-color: #fde68a; }
-    #feed { display: grid; gap: 12px; }
-    .card { border-left: 5px solid #7590ed; } .card.negative { border-left-color: #d05d67; } .card.positive { border-left-color: #3a9a74; }
-    .meta { display: flex; flex-wrap: wrap; gap: 8px; color: #516078; font-size: .9rem; }
-    .badge { background: #eef1f7; border-radius: 999px; padding: 4px 8px; }
-    button { margin-top: 14px; background: #3758e8; color: #fff; border: 0; border-radius: 8px; padding: 9px 12px; cursor: pointer; font-weight: 700; }
-    button:hover { background: #2945c4; } #reason-panel { display: none; margin-top: 12px; background: #f0f4ff; border-radius: 8px; padding: 12px; }
-    #reason-panel ul { margin: 8px 0 0; padding-left: 20px; } .error { color: #a83242; font-weight: 700; }
+    /* ==========================================================================
+       MoodFeed Editorial Calm Intelligence Design System & Tokens
+       ========================================================================== */
+    :root {
+      /* 8px Spacing Grid */
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-7: 32px;
+      --space-8: 40px;
+      --space-9: 48px;
+      --space-10: 64px;
+      --space-11: 80px;
+
+      /* Typography Scale */
+      --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+
+      /* Corner Radii */
+      --radius-xs: 4px;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+      --radius-full: 9999px;
+
+      /* Transitions */
+      --motion-duration-fast: 140ms;
+      --motion-duration-base: 200ms;
+      --motion-duration-slow: 300ms;
+      --motion-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+      /* LIGHT THEME TOKENS (Default) */
+      --color-bg: #F6F7F5;
+      --color-surface: #FFFFFF;
+      --color-surface-raised: #FFFFFF;
+      --color-surface-muted: #EEF1EF;
+      --color-surface-subtle: #F0F4F2;
+      --color-border: #DDE3DF;
+      --color-border-strong: #C8D1CB;
+      --color-border-subtle: #E8EEEB;
+
+      --color-text-primary: #17211D;
+      --color-text-secondary: #53615A;
+      --color-text-tertiary: #7B8780;
+      --color-text-muted: #8E9B94;
+      --color-text-inverse: #FFFFFF;
+
+      --color-brand-900: #173A35;
+      --color-brand-800: #205149;
+      --color-brand-700: #28685E;
+      --color-brand-600: #347D70;
+      --color-brand-500: #4C9788;
+      --color-brand-100: #DCEEE9;
+      --color-brand-50: #F0F8F5;
+
+      --color-accent: #C88B58;
+      --color-accent-soft: #F7EFE8;
+      --color-accent-border: #E8CAAF;
+
+      --color-info: #3E7393;
+      --color-info-soft: #E8F1F6;
+      --color-info-border: #BCD7E6;
+
+      --color-success: #357358;
+      --color-success-soft: #E7F3ED;
+      --color-success-border: #B7DEC9;
+
+      --color-warning: #A86B27;
+      --color-warning-soft: #FAF0E1;
+      --color-warning-border: #ECD5B2;
+
+      --color-danger: #A64B4B;
+      --color-danger-soft: #F9EBEB;
+      --color-danger-border: #ECC4C4;
+
+      /* Shadows */
+      --shadow-sm: 0 1px 2px rgba(23, 33, 29, 0.04), 0 1px 3px rgba(23, 33, 29, 0.03);
+      --shadow-md: 0 4px 12px rgba(23, 33, 29, 0.06), 0 1px 3px rgba(23, 33, 29, 0.04);
+      --shadow-lg: 0 12px 28px rgba(23, 33, 29, 0.09), 0 2px 6px rgba(23, 33, 29, 0.04);
+      --shadow-focus: 0 0 0 3px rgba(52, 125, 112, 0.28);
+    }
+
+    /* DARK THEME OVERRIDES */
+    [data-theme="dark"] {
+      --color-bg: #0F1715;
+      --color-surface: #15221F;
+      --color-surface-raised: #1C2D29;
+      --color-surface-muted: #1A2825;
+      --color-surface-subtle: #121E1C;
+      --color-border: #283C37;
+      --color-border-strong: #37534D;
+      --color-border-subtle: #1F302C;
+
+      --color-text-primary: #EEF4F1;
+      --color-text-secondary: #A6B8B1;
+      --color-text-tertiary: #7D928B;
+      --color-text-muted: #647770;
+      --color-text-inverse: #0F1715;
+
+      --color-brand-900: #F0F8F5;
+      --color-brand-800: #DCEEE9;
+      --color-brand-700: #62B7A6;
+      --color-brand-600: #4C9788;
+      --color-brand-500: #347D70;
+      --color-brand-100: #1B3530;
+      --color-brand-50: #142824;
+
+      --color-accent: #E5A572;
+      --color-accent-soft: #2D2218;
+      --color-accent-border: #523824;
+
+      --color-info: #6BA8CC;
+      --color-info-soft: #172631;
+      --color-info-border: #254256;
+
+      --color-success: #5DB58E;
+      --color-success-soft: #142820;
+      --color-success-border: #224738;
+
+      --color-warning: #DB9D54;
+      --color-warning-soft: #2B2113;
+      --color-warning-border: #4D391F;
+
+      --color-danger: #D97E7E;
+      --color-danger-soft: #2C1818;
+      --color-danger-border: #502828;
+
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+      --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+      --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.65);
+      --shadow-focus: 0 0 0 3px rgba(98, 183, 166, 0.35);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--color-bg);
+      color: var(--color-text-primary);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image: radial-gradient(var(--color-border-subtle) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--color-brand-600);
+      outline-offset: 2px;
+    }
+
+    .app-shell { display: flex; min-height: 100vh; width: 100%; }
+
+    /* Sidebar Navigation */
+    aside.app-sidebar {
+      width: 268px;
+      background: var(--color-surface);
+      border-right: 1px solid var(--color-border);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: fixed;
+      top: 0; bottom: 0; left: 0;
+      z-index: 120;
+      padding: var(--space-5) var(--space-4);
+      overflow-y: auto;
+      transition: transform var(--motion-duration-base) var(--motion-ease-out);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding-bottom: var(--space-4);
+      border-bottom: 1px solid var(--color-border-subtle);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .brand-logo-svg { width: 36px; height: 36px; flex-shrink: 0; }
+
+    .brand-info h1 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    .brand-info p {
+      font-size: 0.76rem;
+      color: var(--color-text-tertiary);
+      margin-top: 2px;
+    }
+
+    .nav-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      margin-top: var(--space-4);
+      flex: 1;
+    }
+
+    .nav-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-muted);
+      padding: var(--space-3) var(--space-3) var(--space-1);
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: 9px var(--space-3);
+      border-radius: var(--radius-md);
+      color: var(--color-text-secondary);
+      font-size: 0.88rem;
+      font-weight: 600;
+      text-decoration: none;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all var(--motion-duration-fast) ease;
+      background: transparent;
+      text-align: left;
+      width: 100%;
+    }
+
+    .nav-item svg {
+      width: 18px; height: 18px;
+      stroke: currentColor; fill: none; stroke-width: 2;
+      stroke-linecap: round; stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+
+    .nav-item:hover {
+      color: var(--color-text-primary);
+      background: var(--color-surface-muted);
+      border-color: var(--color-border-subtle);
+    }
+
+    .nav-item.active {
+      color: var(--color-brand-800);
+      background: var(--color-brand-50);
+      border-color: var(--color-brand-100);
+      font-weight: 700;
+    }
+
+    [data-theme="dark"] .nav-item.active {
+      color: var(--color-brand-700);
+      background: var(--color-brand-100);
+      border-color: var(--color-border);
+    }
+
+    .sidebar-footer {
+      padding-top: var(--space-4);
+      border-top: 1px solid var(--color-border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .session-badge-card {
+      background: var(--color-surface-muted);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-3);
+      font-size: 0.78rem;
+      color: var(--color-text-secondary);
+      line-height: 1.45;
+    }
+
+    .main-wrapper {
+      flex: 1;
+      margin-left: 268px;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      background: transparent;
+    }
+
+    header.app-header {
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      padding: var(--space-3) var(--space-7);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .header-left { display: flex; align-items: center; gap: var(--space-4); }
+
+    .page-title-display {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      letter-spacing: -0.01em;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      flex-wrap: wrap;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 13px;
+      border-radius: var(--radius-sm);
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      text-decoration: none;
+      transition: all var(--motion-duration-fast) ease;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+
+    .btn:disabled { opacity: 0.5; cursor: not-allowed !important; pointer-events: none; }
+    .btn-primary { background: var(--color-brand-700); color: #ffffff; border-color: var(--color-brand-800); }
+    .btn-primary:hover:not(:disabled) { background: var(--color-brand-600); box-shadow: var(--shadow-sm); }
+    .btn-secondary { background: var(--color-surface); color: var(--color-text-primary); border-color: var(--color-border); }
+    .btn-secondary:hover:not(:disabled) { background: var(--color-surface-muted); border-color: var(--color-border-strong); }
+    .btn-ghost { background: transparent; color: var(--color-text-secondary); border-color: transparent; }
+    .btn-ghost:hover:not(:disabled) { background: var(--color-surface-muted); color: var(--color-text-primary); }
+    .btn-danger { background: var(--color-danger); color: #ffffff; border-color: var(--color-danger); }
+    .btn-danger:hover:not(:disabled) { background: #8E3B3B; }
+    .btn-pilot { background: var(--color-info-soft); color: var(--color-info); border-color: var(--color-info-border); }
+    .btn-pilot:hover:not(:disabled) { background: var(--color-info); color: #ffffff; }
+    .btn-tour { background: var(--color-accent-soft); color: var(--color-accent); border-color: var(--color-accent-border); }
+    .btn-tour:hover:not(:disabled) { background: var(--color-accent); color: #ffffff; }
+    .btn-sm { padding: 5px 10px; font-size: 0.78rem; }
+    .btn-lg { padding: 10px 18px; font-size: 0.94rem; border-radius: var(--radius-md); }
+
+    .theme-toggle-btn { width: 32px; height: 32px; padding: 0; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .badge-demo { background: var(--color-brand-50); color: var(--color-brand-700); border: 1px solid var(--color-brand-100); }
+    .badge-rank { background: var(--color-surface-muted); color: var(--color-text-secondary); border: 1px solid var(--color-border); }
+    .badge-up { background: var(--color-success-soft); color: var(--color-success); border: 1px solid var(--color-success-border); }
+    .badge-down { background: var(--color-accent-soft); color: var(--color-accent); border: 1px solid var(--color-accent-border); }
+    .badge-same { background: var(--color-surface-muted); color: var(--color-text-tertiary); border: 1px solid var(--color-border); }
+    .badge-positive { background: var(--color-success-soft); color: var(--color-success); border: 1px solid var(--color-success-border); }
+    .badge-negative { background: var(--color-warning-soft); color: var(--color-warning); border: 1px solid var(--color-warning-border); }
+    .badge-neutral { background: var(--color-info-soft); color: var(--color-info); border: 1px solid var(--color-info-border); }
+
+    .signal-pill {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: var(--radius-xs);
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .signal-low { background: var(--color-success-soft); color: var(--color-success); border: 1px solid var(--color-success-border); }
+    .signal-medium { background: var(--color-warning-soft); color: var(--color-warning); border: 1px solid var(--color-warning-border); }
+    .signal-high { background: var(--color-danger-soft); color: var(--color-danger); border: 1px solid var(--color-danger-border); }
+
+    .tag-pill {
+      font-size: 0.72rem;
+      color: var(--color-text-tertiary);
+      background: var(--color-surface-subtle);
+      border: 1px solid var(--color-border-subtle);
+      padding: 2px 6px;
+      border-radius: var(--radius-xs);
+    }
+
+    .scorer-badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+      background: var(--color-surface-muted);
+      border: 1px solid var(--color-border);
+      color: var(--color-text-secondary);
+    }
+
+    .switch-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      cursor: pointer;
+      user-select: none;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      background: var(--color-surface-muted);
+      border: 1px solid var(--color-border);
+    }
+    .switch-label input[type="checkbox"] {
+      appearance: none; width: 32px; height: 18px;
+      background: var(--color-border-strong); border-radius: var(--radius-full);
+      position: relative; cursor: pointer; outline: none;
+      transition: background var(--motion-duration-fast) ease;
+    }
+    .switch-label input[type="checkbox"]::after {
+      content: ""; position: absolute; top: 2px; left: 2px;
+      width: 14px; height: 14px; background: #ffffff;
+      border-radius: 50%; transition: transform var(--motion-duration-fast) ease;
+    }
+    .switch-label input[type="checkbox"]:checked { background: var(--color-brand-600); }
+    .switch-label input[type="checkbox"]:checked::after { transform: translateX(14px); }
+
+    .page-container {
+      max-width: 1080px; width: 100%;
+      margin: 0 auto; padding: var(--space-6) var(--space-7);
+    }
+
+    .page-screen {
+      display: none; flex-direction: column; gap: var(--space-6);
+      animation: fadeIn var(--motion-duration-base) var(--motion-ease-out);
+    }
+    .page-screen.active { display: flex; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      box-shadow: var(--shadow-sm);
+      transition: border-color var(--motion-duration-fast) ease, box-shadow var(--motion-duration-fast) ease;
+    }
+    .card:hover { border-color: var(--color-border-strong); }
+
+    /* Feed Card */
+    .feed-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      display: flex; flex-direction: column; gap: var(--space-3);
+      box-shadow: var(--shadow-sm);
+      transition: all var(--motion-duration-fast) ease;
+    }
+    .feed-card:hover { border-color: var(--color-border-strong); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+    .feed-card.card-reverted { border-color: var(--color-accent-border); background: var(--color-surface-subtle); }
+
+    .card-meta-top {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 0.78rem; color: var(--color-text-secondary); flex-wrap: wrap; gap: 6px;
+    }
+
+    .author-info {
+      display: flex; align-items: center; gap: 8px;
+      font-weight: 600; color: var(--color-text-primary);
+    }
+    .author-avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--color-brand-100); color: var(--color-brand-800);
+      font-weight: 700; font-size: 0.78rem;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid var(--color-border-subtle);
+    }
+
+    .card-title-text { font-size: 1.05rem; font-weight: 700; color: var(--color-text-primary); line-height: 1.35; }
+    .card-body-text { font-size: 0.92rem; color: var(--color-text-secondary); line-height: 1.5; }
+
+    .card-meters {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: var(--space-3); background: var(--color-surface-muted);
+      border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md);
+      padding: var(--space-3); font-size: 0.75rem;
+    }
+    .meter-row { display: flex; flex-direction: column; gap: 4px; }
+    .meter-track { height: 6px; background: var(--color-border); border-radius: var(--radius-full); overflow: hidden; }
+    .meter-fill { height: 100%; border-radius: var(--radius-full); transition: width var(--motion-duration-slow) var(--motion-ease-out); }
+    .meter-fill.tox { background: var(--color-danger); }
+    .meter-fill.neg { background: var(--color-warning); }
+    .meter-fill.rep { background: var(--color-accent); }
+
+    .card-actions-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 8px; padding-top: var(--space-3);
+      border-top: 1px solid var(--color-border-subtle);
+    }
+    .card-actions-left, .card-actions-right { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+    /* Feed Toolbar */
+    .feed-toolbar {
+      display: flex; flex-direction: column; gap: var(--space-3);
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg); padding: var(--space-4);
+      box-shadow: var(--shadow-sm);
+    }
+    .toolbar-top-row { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
+    .search-wrapper { flex: 1; min-width: 220px; position: relative; }
+    .search-wrapper input {
+      width: 100%; padding: 8px 32px 8px 34px; border-radius: var(--radius-md);
+      border: 1px solid var(--color-border); background: var(--color-surface-muted);
+      color: var(--color-text-primary); font-size: 0.88rem; font-family: inherit;
+    }
+    .search-wrapper input:focus { border-color: var(--color-brand-600); background: var(--color-surface); outline: none; box-shadow: var(--shadow-focus); }
+    .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--color-text-muted); pointer-events: none; width: 16px; height: 16px; }
+    .search-clear-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 0.9rem; padding: 2px 6px; }
+
+    .filter-tabs-row { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+    .filter-tab-btn {
+      padding: 6px 12px; border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 600;
+      background: var(--color-surface-muted); border: 1px solid var(--color-border);
+      color: var(--color-text-secondary); cursor: pointer; white-space: nowrap; font-family: inherit;
+    }
+    .filter-tab-btn:hover { background: var(--color-surface-subtle); color: var(--color-text-primary); }
+    .filter-tab-btn.active { background: var(--color-brand-700); color: #ffffff; border-color: var(--color-brand-800); }
+
+    /* Drawer */
+    .drawer-overlay {
+      position: fixed; top: 0; bottom: 0; left: 0; right: 0;
+      background: rgba(15, 23, 21, 0.45); backdrop-filter: blur(4px);
+      z-index: 200; opacity: 0; visibility: hidden;
+      transition: all var(--motion-duration-base) ease;
+    }
+    .drawer-overlay.open { opacity: 1; visibility: visible; }
+
+    aside.drawer {
+      position: fixed; top: 0; bottom: 0; right: 0; width: 480px; max-width: 92vw;
+      background: var(--color-surface); border-left: 1px solid var(--color-border);
+      z-index: 210; transform: translateX(100%);
+      transition: transform var(--motion-duration-base) var(--motion-ease-out);
+      display: flex; flex-direction: column; box-shadow: var(--shadow-lg);
+    }
+    aside.drawer.open { transform: translateX(0); }
+
+    .drawer-header {
+      padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--color-border);
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--color-surface-subtle);
+    }
+    .drawer-header h3 { font-size: 1.05rem; font-weight: 700; color: var(--color-text-primary); }
+    .drawer-close { background: transparent; border: 0; font-size: 1.3rem; color: var(--color-text-muted); cursor: pointer; padding: 4px; border-radius: var(--radius-sm); }
+    .drawer-body { padding: var(--space-5); overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: var(--space-4); }
+    .drawer-footer {
+      padding: var(--space-3) var(--space-5); border-top: 1px solid var(--color-border);
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--color-surface-subtle);
+    }
+
+    .exp-step-card {
+      background: var(--color-surface-muted); border: 1px solid var(--color-border);
+      border-radius: var(--radius-md); padding: var(--space-3) var(--space-4);
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .exp-step-title { font-size: 0.76rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-brand-600); }
+    .exp-step-body { font-size: 0.88rem; color: var(--color-text-primary); line-height: 1.45; }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed; top: 0; bottom: 0; left: 0; right: 0;
+      background: rgba(15, 23, 21, 0.55); backdrop-filter: blur(4px);
+      z-index: 300; display: none; align-items: center; justify-content: center;
+      padding: var(--space-4);
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal-card {
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg); width: 100%; max-width: 480px;
+      padding: var(--space-6); box-shadow: var(--shadow-lg);
+      display: flex; flex-direction: column; gap: var(--space-4);
+      animation: modalPop var(--motion-duration-fast) var(--motion-ease-out);
+    }
+    @keyframes modalPop { from { transform: scale(0.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    #toast-container {
+      position: fixed; bottom: var(--space-5); right: var(--space-5);
+      z-index: 400; display: flex; flex-direction: column; gap: var(--space-2);
+      pointer-events: none;
+    }
+    .toast {
+      background: var(--color-text-primary); color: var(--color-text-inverse);
+      padding: 10px 16px; border-radius: var(--radius-md); font-size: 0.84rem;
+      font-weight: 600; box-shadow: var(--shadow-lg); pointer-events: auto;
+      animation: toastIn var(--motion-duration-fast) var(--motion-ease-out);
+    }
+    @keyframes toastIn { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    .tour-banner {
+      background: var(--color-accent-soft); border: 1px solid var(--color-accent-border);
+      border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-3);
+    }
+
+    .pilot-tasks-widget {
+      background: var(--color-info-soft); border: 1px solid var(--color-info-border);
+      border-radius: var(--radius-lg); padding: var(--space-3) var(--space-5);
+    }
+
+    .form-input, .form-select, .form-textarea {
+      width: 100%; padding: 8px 12px; border-radius: var(--radius-sm);
+      border: 1px solid var(--color-border); background: var(--color-surface);
+      color: var(--color-text-primary); font-size: 0.88rem; font-family: inherit;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--color-brand-600); outline: none; box-shadow: var(--shadow-focus);
+    }
+
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    .data-table th, .data-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--color-border); }
+    .data-table th { background: var(--color-surface-muted); color: var(--color-text-secondary); font-weight: 700; }
+
+    .stepper { display: flex; gap: 6px; align-items: center; margin-bottom: var(--space-3); }
+    .step-pill { flex: 1; height: 4px; background: var(--color-border); border-radius: var(--radius-full); transition: background var(--motion-duration-base) ease; }
+    .step-pill.active { background: var(--color-brand-600); }
+    .step-pill.done { background: var(--color-success); }
+
+    .faq-item { border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; background: var(--color-surface); margin-bottom: var(--space-2); }
+    .faq-question {
+      width: 100%; padding: var(--space-4); background: transparent; border: none;
+      text-align: left; font-size: 0.94rem; font-weight: 600; color: var(--color-text-primary);
+      cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+    }
+    .faq-answer { display: none; padding: 0 var(--space-4) var(--space-4); font-size: 0.88rem; color: var(--color-text-secondary); line-height: 1.55; }
+    .faq-item.open .faq-answer { display: block; }
+    .faq-item.open .faq-question { font-weight: 700; color: var(--color-brand-700); }
+
+    .state-box {
+      padding: var(--space-8) var(--space-5); text-align: center; color: var(--color-text-secondary);
+      background: var(--color-surface); border-radius: var(--radius-lg); border: 1px solid var(--color-border);
+      display: flex; flex-direction: column; align-items: center; gap: var(--space-3);
+    }
+    .state-box svg { width: 48px; height: 48px; stroke: var(--color-text-tertiary); margin-bottom: var(--space-1); }
+
+    .error-box { background: var(--color-danger-soft); border: 1px solid var(--color-danger-border); color: var(--color-danger); padding: var(--space-4); border-radius: var(--radius-md); font-size: 0.88rem; }
+
+    .mobile-bottom-nav {
+      display: none; position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--color-surface); border-top: 1px solid var(--color-border);
+      padding: 6px 12px; z-index: 110; justify-content: space-around; align-items: center;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+    }
+    .mobile-nav-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      background: transparent; border: 0; color: var(--color-text-secondary);
+      font-size: 0.72rem; font-weight: 600; cursor: pointer; padding: 4px 8px; border-radius: var(--radius-sm);
+    }
+    .mobile-nav-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; }
+    .mobile-nav-btn.active { color: var(--color-brand-600); font-weight: 700; }
+
+    .mobile-menu-btn {
+      display: none; background: transparent; border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm); padding: 6px 10px; font-size: 1.1rem; cursor: pointer; color: var(--color-text-primary);
+    }
+    .sidebar-backdrop { display: none; position: fixed; top: 0; bottom: 0; left: 0; right: 0; background: rgba(15, 23, 21, 0.45); z-index: 115; }
+
+    @media (max-width: 1024px) {
+      aside.app-sidebar { transform: translateX(-100%); }
+      aside.app-sidebar.open { transform: translateX(0); }
+      .sidebar-backdrop.open { display: block; }
+      .main-wrapper { margin-left: 0; }
+      .mobile-menu-btn { display: inline-flex; }
+      .mobile-bottom-nav { display: flex; }
+      .page-container { padding-bottom: 70px; }
+    }
+
+    @media (max-width: 768px) {
+      .page-container { padding: var(--space-4); padding-bottom: 80px; }
+      header.app-header { padding: var(--space-3) var(--space-4); }
+      .card-meters { grid-template-columns: 1fr; }
+      .card-actions-bar { flex-direction: column; align-items: stretch; }
+      .card-actions-left, .card-actions-right { justify-content: space-between; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
   </style>
 </head>
 <body>
-  <main>
-    <header>
-      <div><h1>MoodFeed Demo</h1><p id="subtitle" class="subtle">Açıklanabilir Türkçe akış prototipi</p></div>
-      <label class="switch"><input id="toggle" type="checkbox" checked> MoodFeed açık</label>
-    </header>
-    <div class="status-bar">
-      <p id="risk" class="risk">Akış yükleniyor…</p>
-      <div id="scorer-status" class="scorer-badge">⚡ Aktif analiz: Yükleniyor…</div>
-    </div>
-    <section class="notice">
-      Bu sistem klinik tanı koymaz. Sonuçlar duygu eğilimi ve içerik maruziyeti sinyalleridir; içerikler silinmez.
-      <span class="subtle-note">ℹ️ Toksisite tespiti kural tabanlı hibrit filtreleme ile hesaplanmaktadır.</span>
-    </section>
-    <h2>Örnek akış</h2>
-    <div id="feed"></div>
-    <section id="reason-panel" aria-live="polite"><strong>Neden bu sırada?</strong><ul id="reasons"></ul></section>
-  </main>
-  <script>
-    const feedElement = document.getElementById("feed");
-    const riskElement = document.getElementById("risk");
-    const scorerElement = document.getElementById("scorer-status");
-    const subtitleElement = document.getElementById("subtitle");
-    const toggleElement = document.getElementById("toggle");
-    const panelElement = document.getElementById("reason-panel");
-    const reasonsElement = document.getElementById("reasons");
+  <div class="app-shell">
+    <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="toggleSidebar(false)"></div>
 
+    <!-- Desktop & Drawer Sidebar -->
+    <aside id="app-sidebar" class="app-sidebar" aria-label="Ana Menü">
+      <div>
+        <div class="brand-section" onclick="navigateTo('welcome')" title="MoodFeed Demo Genel Bakış">
+          <!-- Geometric Minimal Brand SVG -->
+          <svg class="brand-logo-svg" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="40" height="40" rx="10" fill="#28685E"/>
+            <circle cx="20" cy="20" r="11" stroke="#DCEEE9" stroke-width="2.5" stroke-dasharray="3 3"/>
+            <path d="M14 24C17 17 23 17 26 24" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="20" cy="15" r="2.5" fill="#C88B58"/>
+          </svg>
+          <div class="brand-info">
+            <h1>MoodFeed Demo</h1>
+            <p id="subtitle">Açıklanabilir Akış Düzenleyici</p>
+          </div>
+        </div>
+
+        <nav class="nav-menu" aria-label="Gezinme Bağlantıları">
+          <div class="nav-label">Ürün</div>
+          <button class="nav-item active" id="nav-feed" onclick="navigateTo('feed')">
+            <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h11"/></svg>
+            <span>Ana Akış</span>
+          </button>
+          <button class="nav-item" id="nav-insights" onclick="navigateTo('insights')">
+            <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+            <span>Öngörüler (Insights)</span>
+          </button>
+          <button class="nav-item" id="nav-compare" onclick="navigateTo('compare')">
+            <svg viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+            <span>Karşılaştır (A/B)</span>
+          </button>
+          <button class="nav-item" id="nav-preferences" onclick="navigateTo('preferences')">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span>Akış Tercihleri</span>
+          </button>
+
+          <div class="nav-label">Değerlendirme & Destek</div>
+          <button class="nav-item" id="nav-onboarding" onclick="navigateTo('onboarding')">
+            <svg viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg>
+            <span>Başlangıç Rehberi</span>
+          </button>
+          <button class="nav-item" id="nav-pilot" onclick="navigateTo('pilot-consent')">
+            <svg viewBox="0 0 24 24"><path d="M10 2v7.31L4.69 18.6A2 2 0 0 0 6.4 22h11.2a2 2 0 0 0 1.71-3.4L14 9.31V2"/></svg>
+            <span>Pilot Değerlendirme</span>
+          </button>
+          <button class="nav-item" id="nav-help" onclick="navigateTo('help')">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span>Nasıl Çalışır?</span>
+          </button>
+          <button class="nav-item" id="nav-settings" onclick="navigateTo('settings')">
+            <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span>Ayarlar & Gizlilik</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="session-badge-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <strong style="color: var(--color-text-primary);">Demo Oturumu</strong>
+            <span class="badge badge-demo">RAM Bellek</span>
+          </div>
+          <div>Gerçek sosyal medya hesabı bağlı değil. Kişisel veri saklanmaz. Sıfır Kalıcı Depolama.</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Wrapper -->
+    <div class="main-wrapper">
+      <!-- Topbar Header -->
+      <header class="app-header">
+        <div class="header-left">
+          <button class="mobile-menu-btn" onclick="toggleSidebar(true)" aria-label="Menüyü Aç">☰</button>
+          <div class="page-title-display" id="header-page-title">
+            <span>📋 Ana Akış</span>
+          </div>
+        </div>
+        <div class="header-controls">
+          <div id="scorer-status" class="scorer-badge">Kural Tabanlı</div>
+          <button id="auth-status-btn" class="btn btn-ghost btn-sm" onclick="openAuthModal()" title="Kimlik ve Oturum Durumu">👤 Demo Kullanıcı (RAM)</button>
+          <button id="start-pilot-btn" class="btn btn-pilot btn-sm" onclick="navigateTo('pilot-consent')" title="Pilot değerlendirme modunu aç">🧪 Pilot</button>
+          <button id="start-tour-btn" class="btn btn-tour btn-sm" onclick="startTour()" title="4 adımlı kılavuzlu demo turunu başlat">🧭 Demo Rehberini Başlat</button>
+          <button id="reset-demo-btn" class="btn btn-secondary btn-sm" onclick="openResetModal()" title="Tüm tercihleri varsayılana sıfırla">🔄 Demo'yu Sıfırla</button>
+          <button id="refresh-btn" class="btn btn-secondary btn-sm" onclick="handleRefreshFeed()" title="Akışı sunucudan tekrar yükle">🔄 Yenile</button>
+          <button class="btn btn-ghost btn-sm theme-toggle-btn" onclick="toggleTheme()" aria-label="Tema Değiştir" title="Açık/Koyu Tema">
+            <span id="theme-icon">🌙</span>
+          </button>
+          <label class="switch-label">
+            <input id="toggle" type="checkbox" checked>
+            <span id="toggle-label-text">MoodFeed Açık</span>
+          </label>
+        </div>
+      </header>
+
+      <!-- Guided Demo Tour Banner -->
+      <section id="tour-banner" class="tour-banner" style="display: none; margin: 16px 24px 0;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <span id="tour-step-tag" class="badge badge-down">Adım 1/4</span>
+          <div id="tour-step-title" style="font-size: 1rem; font-weight: 700; color: var(--color-text-primary);">1. Akış Kontrolünü Seç</div>
+          <p id="tour-step-desc" style="font-size: 0.84rem; color: var(--color-text-secondary);">Akış Kontrol Merkezi üzerinden profil tercihlerini (Dengeli, Sakin, Kullanıcı Kontrolü) inceleyin.</p>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button id="tour-prev-btn" class="btn btn-secondary btn-sm" onclick="prevTourStep()">← Geri</button>
+          <button id="tour-next-btn" class="btn btn-primary btn-sm" onclick="nextTourStep()">İleri →</button>
+          <button id="tour-close-btn" class="btn btn-secondary btn-sm" onclick="closeTour()">Kapat</button>
+        </div>
+      </section>
+
+      <!-- Pilot Tasks Live Checklist Widget -->
+      <aside id="pilot-tasks-widget" class="pilot-tasks-widget" style="display: none; margin: 16px 24px 0;" aria-live="polite">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div style="font-size: 0.9rem; font-weight: 700; color: var(--color-info); display: flex; align-items: center; gap: 8px;">
+            <span>🧪 Pilot Kullanıcı Görevleri:</span>
+            <span id="pilot-tasks-counter" style="color: var(--color-warning); font-size: 0.82rem;">(0/6 Tamamlandı)</span>
+          </div>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <button class="btn btn-secondary btn-sm" onclick="navigateTo('feed')">🎯 Akışa Dön</button>
+            <button class="btn btn-secondary btn-sm" onclick="navigateTo('pilot-survey')">📝 Ankete Git</button>
+            <button class="btn btn-secondary btn-sm" onclick="navigateTo('pilot-results')">📊 Sonuç Raporu</button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Page Router Container -->
+      <main class="page-container" id="main-app-content">
+
+        <!-- 1. SCREEN: WELCOME / OVERVIEW DASHBOARD -->
+        <section id="screen-welcome" class="page-screen">
+          <div class="card" style="background: var(--color-brand-50); border-color: var(--color-brand-100); padding: var(--space-7);">
+            <span class="badge badge-demo" style="margin-bottom: var(--space-2);">Açıklanabilir Akış Mimarisi</span>
+            <h2 style="font-size: 1.8rem; font-weight: 750; color: var(--color-brand-900); letter-spacing: -0.02em; line-height: 1.25;">
+              Akışını daha anlaşılır gör. Kontrolü sende tut.
+            </h2>
+            <p style="font-size: 1rem; color: var(--color-text-secondary); max-width: 680px; margin-top: var(--space-2); line-height: 1.6;">
+              MoodFeed, içerik akışındaki tekrar ve yoğunluk sinyallerini görünür kılar; akışın nasıl şekillendiğini anlamanıza ve tercihlerinizi doğrudan değiştirmenize yardımcı olur.
+            </p>
+            <div style="display: flex; gap: var(--space-3); margin-top: var(--space-5); flex-wrap: wrap;">
+              <button class="btn btn-primary btn-lg" onclick="navigateTo('feed')">📋 Demo Akışını Aç →</button>
+              <button class="btn btn-secondary btn-lg" onclick="navigateTo('compare')">⚖️ Akışları Karşılaştır</button>
+              <button class="btn btn-secondary btn-lg" onclick="navigateTo('preferences')">🎛️ Tercihleri Düzenle</button>
+            </div>
+          </div>
+
+          <!-- Overview Live Metric Cards -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-4);">
+            <div class="card">
+              <div style="font-size: 0.8rem; font-weight: 700; color: var(--color-text-tertiary); text-transform: uppercase;">Görüntülenen İçerik</div>
+              <div id="stat-analyzed" style="font-size: 1.8rem; font-weight: 800; color: var(--color-text-primary); margin: 4px 0;">10</div>
+              <div style="font-size: 0.78rem; color: var(--color-text-muted);">Sentetik demo akışında işlenen gönderi</div>
+            </div>
+            <div class="card">
+              <div style="font-size: 0.8rem; font-weight: 700; color: var(--color-text-tertiary); text-transform: uppercase;">Akış Değişikliği</div>
+              <div id="stat-changed" style="font-size: 1.8rem; font-weight: 800; color: var(--color-brand-600); margin: 4px 0;">3</div>
+              <div style="font-size: 0.78rem; color: var(--color-text-muted);">Sıralaması sinyallerle düzenlenen içerik</div>
+            </div>
+            <div class="card">
+              <div style="font-size: 0.8rem; font-weight: 700; color: var(--color-text-tertiary); text-transform: uppercase;">Aktif Sıralama Profili</div>
+              <div id="stat-profile" style="font-size: 1.2rem; font-weight: 700; color: var(--color-text-primary); margin: 6px 0;">Dengeli</div>
+              <div style="font-size: 0.78rem; color: var(--color-text-muted);">Toksisite ve çeşitlilik dengeli ağırlıkta</div>
+            </div>
+            <div class="card">
+              <div style="font-size: 0.8rem; font-weight: 700; color: var(--color-text-tertiary); text-transform: uppercase;">İşlem Süresi</div>
+              <div id="stat-time" style="font-size: 1.8rem; font-weight: 800; color: var(--color-text-primary); margin: 4px 0;">2.4 ms</div>
+              <div style="font-size: 0.78rem; color: var(--color-text-muted);">Yerel deterministik karar gecikmesi</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. SCREEN: ONBOARDING -->
+        <section id="screen-onboarding" class="page-screen">
+          <div class="card" style="max-width: 680px; margin: 0 auto; width: 100%;">
+            <div class="stepper">
+              <div id="step-ind-1" class="step-pill active"></div>
+              <div id="step-ind-2" class="step-pill"></div>
+              <div id="step-ind-3" class="step-pill"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4);">
+              <span id="onboarding-step-pill" class="badge badge-rank">Adım 1/3</span>
+              <button class="btn btn-ghost btn-sm" onclick="completeOnboarding()">Atla ✕</button>
+            </div>
+
+            <div id="onboarding-step-1" style="display: flex; flex-direction: column; gap: var(--space-3);">
+              <h3 style="font-size: 1.3rem; font-weight: 700; color: var(--color-text-primary);">1. Akışını daha anlaşılır gör.</h3>
+              <p style="font-size: 0.94rem; color: var(--color-text-secondary); line-height: 1.6;">
+                MoodFeed, içeriklerin neden öne çıktığını veya geriye çekildiğini açık sinyallerle (toksisite cezası, negatiflik dengesi, çeşitlilik bonusu) gösterir.
+              </p>
+            </div>
+
+            <div id="onboarding-step-2" style="display: none; flex-direction: column; gap: var(--space-3);">
+              <h3 style="font-size: 1.3rem; font-weight: 700; color: var(--color-text-primary);">2. Kontrol sende kalır.</h3>
+              <p style="font-size: 0.94rem; color: var(--color-text-secondary); line-height: 1.6;">
+                Sıralama tercihlerini anında değiştirebilir, herhangi bir öneriyi tek tıkla geri alabilir ve orijinal akışla yan yana karşılaştırabilirsiniz.
+              </p>
+            </div>
+
+            <div id="onboarding-step-3" style="display: none; flex-direction: column; gap: var(--space-3);">
+              <h3 style="font-size: 1.3rem; font-weight: 700; color: var(--color-text-primary);">3. Sınırları açıkça biliyorsun.</h3>
+              <p style="font-size: 0.94rem; color: var(--color-text-secondary); line-height: 1.6;">
+                Bu demo sentetik içerik kullanır; klinik, psikolojik veya tıbbi bir değerlendirme yapmaz. Kişisel veri toplanmaz ve saklanmaz.
+              </p>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-top: var(--space-6); padding-top: var(--space-4); border-top: 1px solid var(--color-border);">
+              <button id="onboarding-back-btn" class="btn btn-secondary" style="display: none;" onclick="prevOnboardingStep()">← Geri</button>
+              <button id="onboarding-next-btn" class="btn btn-primary" style="margin-left: auto;" onclick="nextOnboardingStep()">İleri →</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. SCREEN: MAIN FEED & RESULTS -->
+        <section id="screen-feed" class="page-screen active">
+          <div class="feed-toolbar">
+            <div class="toolbar-top-row">
+              <div class="search-wrapper">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input id="feed-search-input" type="search" placeholder="İçerik, yazar veya etiket ara..." oninput="handleSearchInput(this.value)">
+                <button id="feed-search-clear" class="search-clear-btn" style="display: none;" onclick="clearSearch()">✕</button>
+              </div>
+              <div style="display: flex; gap: var(--space-2); align-items: center;">
+                <label for="feed-sort-select" style="font-size: 0.8rem; font-weight: 600; color: var(--color-text-tertiary);">Sırala:</label>
+                <select id="feed-sort-select" class="form-select" style="width: auto;" onchange="handleSortChange(this.value)">
+                  <option value="recommended">Önerilen Sıra</option>
+                  <option value="original">Orijinal Sıra</option>
+                  <option value="least_repetition">En Düşük Tekrar</option>
+                  <option value="most_explainable">En Yüksek Açıklanabilirlik</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="filter-tabs-row">
+              <button id="tab-all" class="filter-tab-btn active" onclick="setFeedFilter('all')">Tümü</button>
+              <button id="tab-saved" class="filter-tab-btn" onclick="setFeedFilter('saved')">★ Kaydedilenler (<span id="count-saved">0</span>)</button>
+              <button id="tab-recent" class="filter-tab-btn" onclick="setFeedFilter('recent')">Yeni İçerikler</button>
+              <button id="tab-low_density" class="filter-tab-btn" onclick="setFeedFilter('low_density')">Düşük Yoğunluk</button>
+              <button id="tab-explained" class="filter-tab-btn" onclick="setFeedFilter('explained')">Açıklamalı</button>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: var(--color-text-tertiary); margin-top: 2px;">
+              <span id="feed-results-counter">10 içerik listeleniyor</span>
+              <span>Akış Modu: <strong>MoodFeed</strong></span>
+            </div>
+          </div>
+
+          <div id="main-feed-stream" style="display: flex; flex-direction: column; gap: var(--space-4);"></div>
+        </section>
+
+        <!-- Screen Compatibility Targets -->
+        <section id="screen-results" class="page-screen" style="display: none;"></section>
+        <section id="screen-scenario" class="page-screen" style="display: none;"></section>
+        <section id="screen-profile" class="page-screen" style="display: none;"></section>
+        <section id="screen-analyzing" class="page-screen" style="display: none;"></section>
+
+        <!-- 4. SCREEN: CONTENT DETAIL -->
+        <section id="screen-content" class="page-screen">
+          <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-2);">
+            <button class="btn btn-secondary btn-sm" onclick="navigateTo('feed')">← Akışa Dön</button>
+          </div>
+          <div class="card" id="detail-card-container">
+            <div class="card-meta-top">
+              <div class="author-info">
+                <div class="author-avatar" id="detail-author-avatar">M</div>
+                <span id="detail-author">Yazar</span>
+                <span class="badge badge-demo">Demo İçerik</span>
+              </div>
+              <span id="detail-timestamp" class="badge badge-rank">Zaman</span>
+            </div>
+            <h2 id="detail-title" style="font-size: 1.35rem; font-weight: 700; margin: var(--space-3) 0 var(--space-2); color: var(--color-text-primary);">İçerik Başlığı</h2>
+            <p id="detail-body" style="font-size: 1rem; color: var(--color-text-secondary); line-height: 1.6;"></p>
+
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: var(--space-4);">
+              <span id="detail-sentiment" class="badge badge-positive">Duygu: Pozitif</span>
+              <span id="detail-rank-orig" class="badge badge-rank">Orijinal Sıra: #1</span>
+              <span id="detail-rank-new" class="badge badge-up">MoodFeed Sırası: #1</span>
+            </div>
+
+            <div style="display: flex; gap: var(--space-3); margin-top: var(--space-6); padding-top: var(--space-4); border-top: 1px solid var(--color-border);">
+              <button id="detail-save-btn" class="btn btn-secondary" onclick="toggleSaveDetailItem()">🔖 Kaydet</button>
+              <button id="detail-revert-btn" class="btn btn-secondary" onclick="toggleRevertDetailItem()">↩️ Öneriyi Geri Al</button>
+              <button class="btn btn-primary" onclick="openDrawerForDetail()">🔍 Neden Burada? (Formülü İncele)</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5. SCREEN: INSIGHTS DASHBOARD -->
+        <section id="screen-insights" class="page-screen">
+          <div class="card">
+            <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--color-text-primary);">📊 Akış İçgörüleri & Oturum Telemetrisi</h2>
+            <p style="font-size: 0.88rem; color: var(--color-text-secondary); margin-top: 2px;">
+              Bu demo oturumunda görülen içerik örüntülerinin ve sıralama etkilerinin betimsel özeti.
+            </p>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-4);">
+            <div class="card">
+              <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: var(--space-3); color: var(--color-text-primary);">Kategori Dağılımı</h3>
+              <div id="insights-category-bars" style="display: flex; flex-direction: column; gap: 8px;"></div>
+            </div>
+            <div class="card">
+              <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: var(--space-3); color: var(--color-text-primary);">Benzer İçerik Grupları</h3>
+              <div id="insights-group-bars" style="display: flex; flex-direction: column; gap: 8px;"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: var(--space-3); color: var(--color-text-primary);">Bellek İçi Oturum Etkileşim Günlüğü (Oturum Telemetrisi)</h3>
+            <ul id="insights-log-list" style="list-style: none; font-size: 0.82rem; color: var(--color-text-secondary); display: flex; flex-direction: column; gap: 6px;">
+              <li>• Oturum başlatıldı (RAM bellek).</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- 6. SCREEN: COMPARE (A/B) -->
+        <section id="screen-compare" class="page-screen">
+          <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+              <div>
+                <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--color-text-primary);">⚖️ A/B Akış Karşılaştırması</h2>
+                <p style="font-size: 0.88rem; color: var(--color-text-secondary); margin-top: 2px;">
+                  MoodFeed içerik silmez; yalnızca kullanıcı kontrollü bir sıralama önerir.
+                </p>
+              </div>
+              <button class="btn btn-secondary btn-sm" onclick="toggleCompareLayout()">Görünümü Değiştir</button>
+            </div>
+          </div>
+
+          <!-- Perf Card -->
+          <div class="card perf-card" style="padding: 12px; font-size: 0.82rem; color: var(--color-text-secondary); display: flex; justify-content: space-between; align-items: center;">
+            <span>İşlenen Karşılaştırma: <strong>4 Gönderi (Örnek Akış)</strong></span>
+            <span class="badge badge-positive">Deterministik Karar Doğrulandı</span>
+          </div>
+
+          <div id="compare-grid-wrapper" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--space-4);">
+            <div class="card original-feed" style="background: var(--color-surface-subtle);">
+              <h3 style="font-size: 1rem; font-weight: 700; color: var(--color-text-secondary); margin-bottom: var(--space-3);">Orijinal Akış (A)</h3>
+              <div id="compare-feed-a" style="display: flex; flex-direction: column; gap: var(--space-3);"></div>
+            </div>
+            <div class="card moodfeed-feed" style="background: var(--color-brand-50); border-color: var(--color-brand-100);">
+              <h3 style="font-size: 1rem; font-weight: 700; color: var(--color-brand-700); margin-bottom: var(--space-3);">MoodFeed Akışı (B)</h3>
+              <div id="compare-feed-b" style="display: flex; flex-direction: column; gap: var(--space-3);"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 7. SCREEN: PREFERENCES / CONTROL CENTER -->
+        <section id="screen-preferences" class="page-screen">
+          <div class="card">
+            <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--color-text-primary);">🎛️ Akış Kontrol Merkezi & Tercihler</h2>
+            <p style="font-size: 0.88rem; color: var(--color-text-secondary);">Akış sıralamasında uygulanacak duygu, toksisite ve çeşitlilik ağırlıklarını belirleyin.</p>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-4);">
+            <div class="card">
+              <h3 style="font-size: 1rem; font-weight: 700; color: var(--color-text-primary); margin-bottom: var(--space-2);">Sıralama Profili</h3>
+              <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 0.88rem;">
+                  <input type="radio" name="pref-profile" value="balanced" checked onchange="handlePrefProfileChange(this.value)">
+                  <span><strong>Dengeli</strong> (Önerilen varsayılan)</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 0.88rem;">
+                  <input type="radio" name="pref-profile" value="calmer" onchange="handlePrefProfileChange(this.value)">
+                  <span><strong>Daha Sakin Akış</strong> (Yüksek negatiflik ve toksisite cezası)</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 0.88rem;">
+                  <input type="radio" name="pref-profile" value="user_control" onchange="handlePrefProfileChange(this.value)">
+                  <span><strong>Kullanıcı Kontrolü</strong> (Minimum müdahale)</span>
+                </label>
+              </div>
+              <div style="font-size: 0.78rem; color: var(--color-text-secondary); margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--color-border-subtle);">
+                Silinen İçerik: 0 (MoodFeed içerik silmez; sıralama önerir)
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 style="font-size: 1rem; font-weight: 700; color: var(--color-text-primary); margin-bottom: var(--space-2);">Sentetik Senaryo & Test</h3>
+              <label style="display: flex; align-items: center; gap: 8px; font-size: 0.88rem; margin-top: 6px;">
+                <input id="pref-scenario-check" type="checkbox" onchange="handlePrefScenarioChange(this.checked)">
+                <span>Simüle Edilmiş Olumsuzluk Sinyali (Sentetik senaryo)</span>
+              </label>
+              <p style="font-size: 0.78rem; color: var(--color-text-muted); margin-top: 8px;">
+                * Jüri testi için olumsuz içerik maruziyetini simüle eder; gerçek psikolojik değerlendirme değildir.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 8. SCREEN: SETTINGS & PRIVACY -->
+        <section id="screen-settings" class="page-screen">
+          <div class="card">
+            <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--color-text-primary);">⚙️ Ayarlar & Gizlilik İlkeleri</h2>
+            <p style="font-size: 0.88rem; color: var(--color-text-secondary); margin-top: 2px;">
+              MoodFeed'in sıfır kalıcı veri politikası ve kullanıcı gizliliği taahhütleri.
+            </p>
+          </div>
+
+          <div class="card">
+            <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: var(--space-3); color: var(--color-text-primary);">🔒 Gizlilik ve Veri Haritası</h3>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Veri Alanı</th>
+                  <th>Amaç</th>
+                  <th>Saklama Süresi</th>
+                  <th>Kullanıcı Kontrolü</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Sıralama Tercihleri</td>
+                  <td>Akış sıralamasını hesaplama</td>
+                  <td>Oturum Süresince (RAM)</td>
+                  <td>İstendiğinde Sıfırlanabilir</td>
+                </tr>
+                <tr>
+                  <td>Kaydedilen İçerikler</td>
+                  <td>Yerel yer imi listesi</td>
+                  <td>Oturum Süresince (RAM)</td>
+                  <td>Tek tıkla kaldırılabilir</td>
+                </tr>
+                <tr>
+                  <td>Geri Alınan Öneriler</td>
+                  <td>Orijinal sıralamayı koruma</td>
+                  <td>Oturum Süresince (RAM)</td>
+                  <td>Anında geri alınabilir</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card" style="border-color: var(--color-danger-border); background: var(--color-danger-soft);">
+            <h3 style="font-size: 1rem; font-weight: 700; color: var(--color-danger); margin-bottom: var(--space-2);">Tehlikeli Bölge</h3>
+            <p style="font-size: 0.84rem; color: var(--color-text-secondary); margin-bottom: var(--space-3);">
+              Oturumdaki tüm tercihleri, kaydedilenleri ve ölçümleri temizler.
+            </p>
+            <button class="btn btn-danger btn-sm" onclick="openResetModal()">🔄 Tüm Demo Durumunu Sıfırla</button>
+          </div>
+        </section>
+
+        <!-- 9. SCREEN: HELP & FAQ -->
+        <section id="screen-help" class="page-screen">
+          <div class="card">
+            <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--color-text-primary);">❓ Nasıl Çalışır? & Sıkça Sorulan Sorular</h2>
+            <p style="font-size: 0.88rem; color: var(--color-text-secondary); margin-top: 2px;">
+              MoodFeed'in çalışma mantığı, algoritmik şeffaflık ilkeleri ve sınırlılıkları.
+            </p>
+          </div>
+
+          <div id="faq-accordion-container">
+            <div class="faq-item">
+              <button class="faq-question" onclick="toggleFaq(this)">
+                <span>MoodFeed tam olarak nedir?</span><span>+</span>
+              </button>
+              <div class="faq-answer">
+                MoodFeed, içerik akışındaki tekrar, yoğunluk ve negatiflik sinyallerini görünür kılan; kullanıcının akış sıralamasını kendi tercihleriyle şekillendirmesini sağlayan açıklanabilir bir içerik düzenleyicidir.
+              </div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-question" onclick="toggleFaq(this)">
+                <span>MoodFeed içerikleri siler mi veya sansürler mi?</span><span>+</span>
+              </button>
+              <div class="faq-answer">
+                Hayır. MoodFeed hiçbir içeriği silmez veya gizlemez. Yalnızca kullanıcı tercihlerine göre sıralama önerisi sunar; kullanıcı dilediği an orijinal sıraya dönebilir.
+              </div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-question" onclick="toggleFaq(this)">
+                <span>Bu bir psikolojik veya tıbbi değerlendirme aracı mıdır?</span><span>+</span>
+              </button>
+              <div class="faq-answer">
+                Hayır. Bu çalışma klinik veya psikolojik bir değerlendirme/tedavi iddiası taşımaz. Yalnızca metinlerdeki dilbilimsel sinyalleri betimleyici olarak analiz eder.
+              </div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-question" onclick="toggleFaq(this)">
+                <span>Verilerim nerede saklanıyor?</span><span>+</span>
+              </button>
+              <div class="faq-answer">
+                Tüm oturum durumu yalnızca tarayıcınızın JavaScript RAM belleğinde tutulur; localStorage, çerezler veya harici sunuculara kalıcı veri yazılmaz.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 10. SCREEN: PILOT CONSENT -->
+        <section id="screen-pilot-consent" class="page-screen">
+          <div class="card" style="max-width: 680px; margin: 0 auto; width: 100%;">
+            <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--color-brand-800);">🧪 Pilot Kullanıcı Değerlendirmesi</h2>
+            <div style="background: var(--color-surface-muted); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-4); margin: var(--space-3) 0; font-size: 0.88rem; line-height: 1.6;">
+              <p>• Bu oturumda sentetik demo içerikleri ve arayüz etkileşimleri değerlendirilecektir.</p>
+              <p>• Gerçek sosyal medya hesabı veya kişisel mesaj toplanmaz.</p>
+              <p>• Klinik veya psikolojik değerlendirme yapılmaz.</p>
+              <p>• Katılım tamamen isteğe bağlıdır; istediğiniz zaman ayrılabilirsiniz.</p>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: var(--space-3); margin-top: var(--space-4);">
+              <button id="pilot-consent-decline-btn" class="btn btn-secondary" onclick="navigateTo('welcome')">Vazgeç</button>
+              <button id="pilot-consent-agree-btn" class="btn btn-primary" onclick="acceptPilotConsent()">✓ Bilgilendirildim, Başlat</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 11. SCREEN: PILOT SURVEY & RESULTS -->
+        <section id="screen-pilot-survey" class="page-screen">
+          <div class="card" style="max-width: 720px; margin: 0 auto; width: 100%;">
+            <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--color-text-primary);">📝 Pilot Değerlendirme Anketi</h2>
+            <p style="font-size: 0.88rem; color: var(--color-text-secondary); margin-bottom: var(--space-4);">
+              Lütfen prototip deneyiminizi aşağıdaki 1-5 Likert ölçeğinde değerlendirin.
+            </p>
+
+            <div id="survey-error-alert" class="error-box" role="alert" style="display: none; margin-bottom: var(--space-3);">
+              Lütfen tüm soruları doldurduğunuzdan emin olun.
+            </div>
+
+            <form id="pilot-survey-form" onsubmit="handlePilotSurveySubmit(event)" style="display: flex; flex-direction: column; gap: var(--space-4);">
+              <div id="field-understandability">
+                <label style="font-weight: 600; font-size: 0.88rem;">1. Sıralama gerekçeleri ve açıklamalar anlaşılırdı.</label>
+                <div style="display: flex; gap: var(--space-4); margin-top: 6px;">
+                  <label><input type="radio" name="q1" value="1" required> 1</label>
+                  <label><input type="radio" name="q1" value="2"> 2</label>
+                  <label><input type="radio" name="q1" value="3"> 3</label>
+                  <label><input type="radio" name="q1" value="4"> 4</label>
+                  <label><input type="radio" name="q1" value="5"> 5 (Tamamen)</label>
+                </div>
+              </div>
+
+              <div>
+                <label style="font-weight: 600; font-size: 0.88rem;">2. Geri alma (undo) kontrolleri kontrol hissini artırdı.</label>
+                <div style="display: flex; gap: var(--space-4); margin-top: 6px;">
+                  <label><input type="radio" name="q2" value="1" required> 1</label>
+                  <label><input type="radio" name="q2" value="2"> 2</label>
+                  <label><input type="radio" name="q2" value="3"> 3</label>
+                  <label><input type="radio" name="q2" value="4"> 4</label>
+                  <label><input type="radio" name="q2" value="5"> 5 (Tamamen)</label>
+                </div>
+              </div>
+
+              <div>
+                <label style="font-weight: 600; font-size: 0.88rem;">3. Açık Geri Bildirim ve Notlar</label>
+                <textarea id="survey-open-text" class="form-textarea" rows="3" placeholder="Gözlemlerinizi veya önerilerinizi paylaşın..."></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-primary" style="margin-top: var(--space-2);">✓ Anketi Tamamla ve Sonuçları Gör</button>
+            </form>
+          </div>
+        </section>
+
+        <section id="screen-pilot-results" class="page-screen">
+          <div class="card" style="max-width: 760px; margin: 0 auto; width: 100%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+              <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--color-text-primary);">📊 Görev Kalitesi ve Süre Analizi</h2>
+              <span class="badge badge-positive">Pilot Tamamlandı</span>
+            </div>
+
+            <div id="pilot-no-data-msg" style="display: none; padding: 16px; color: var(--color-text-tertiary);">
+              Henüz tamamlanmış pilot değerlendirme verisi yok.
+            </div>
+
+            <div style="margin-top: var(--space-4);">
+              <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: var(--space-2);">İçerik Sinyali Maruziyeti & Görev Kalitesi</h3>
+              <table class="data-table" id="task-quality-table">
+                <thead>
+                  <tr>
+                    <th>Görev</th>
+                    <th>Durum</th>
+                    <th>Süre</th>
+                    <th>Hata</th>
+                    <th>Tekrar</th>
+                  </tr>
+                </thead>
+                <tbody id="task-quality-tbody">
+                  <!-- JS ile doldurulur -->
+                </tbody>
+              </table>
+            </div>
+
+            <div style="display: flex; gap: var(--space-3); margin-top: var(--space-6); padding-top: var(--space-4); border-top: 1px solid var(--color-border);">
+              <button id="export-pilot-json-btn" class="btn btn-primary" onclick="exportPilotJSON()">📥 JSON Olarak İndir</button>
+              <button id="export-pilot-csv-btn" class="btn btn-secondary" onclick="exportPilotCSV()">📥 CSV Olarak İndir</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 12. SCREEN: 404 NOT FOUND -->
+        <section id="screen-not-found" class="page-screen">
+          <div class="state-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--color-text-primary);">Sayfa veya İçerik Bulunamadı</h2>
+            <p>Aradığınız ekran veya içerik mevcut değil veya kaldırılmış olabilir.</p>
+            <button class="btn btn-primary btn-sm" onclick="navigateTo('feed')">Akışa Dön</button>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Mobile Bottom Navigation Bar -->
+  <nav class="mobile-bottom-nav" aria-label="Mobil Gezinme">
+    <button class="mobile-nav-btn active" id="mob-feed" onclick="navigateTo('feed')">
+      <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h11"/></svg>
+      <span>Akış</span>
+    </button>
+    <button class="mobile-nav-btn" id="mob-insights" onclick="navigateTo('insights')">
+      <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+      <span>Öngörü</span>
+    </button>
+    <button class="mobile-nav-btn" id="mob-compare" onclick="navigateTo('compare')">
+      <svg viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+      <span>A/B</span>
+    </button>
+    <button class="mobile-nav-btn" id="mob-preferences" onclick="navigateTo('preferences')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span>Tercih</span>
+    </button>
+    <button class="mobile-nav-btn" id="mob-help" onclick="navigateTo('help')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span>Yardım</span>
+    </button>
+  </nav>
+
+  <!-- Explainability Drawer -->
+  <div id="drawer-overlay" class="drawer-overlay" tabindex="-1" onclick="closeDrawer()"></div>
+  <aside id="drawer" class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" aria-hidden="true">
+    <div class="drawer-header">
+      <h3 id="drawer-title">🔍 Kararı İncele (Dikey Karar İzi)</h3>
+      <button id="drawer-close" class="drawer-close" aria-label="Kapat" onclick="closeDrawer()">&times;</button>
+    </div>
+    <div class="drawer-body" id="drawer-content">
+      <!-- Dinamik Çekmece İçeriği: Decision Trace & Formül -->
+    </div>
+    <div class="drawer-footer" id="drawer-footer">
+      <span style="font-size: 0.74rem; color: var(--color-text-muted); margin-right: auto;">* Escape tuşu ile kapatılabilir</span>
+      <button class="btn btn-secondary btn-sm" onclick="closeDrawer()">Kapat</button>
+    </div>
+  </aside>
+
+  <!-- Reset Confirmation Modal -->
+  <div id="reset-confirm-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="reset-modal-title">
+    <div class="modal-card">
+      <h3 id="reset-modal-title" style="font-size: 1.15rem; font-weight: 700; color: var(--color-danger);">🔄 Demo'yu Sıfırla</h3>
+      <p style="font-size: 0.88rem; color: var(--color-text-secondary); line-height: 1.55;">
+        Bu işlem oturumdaki kaydedilen içerikleri, geri alınan sıralama kararlarını, anket yanıtlarını ve süre ölçümlerini sıfırlayacaktır.
+      </p>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px;">
+        <button class="btn btn-secondary btn-sm" onclick="closeResetModal()">Vazgeç</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmResetDemo()">✓ Evet, Sıfırla</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Auth Boundary & API Mock Modal -->
+  <div id="auth-boundary-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
+    <div class="modal-card" style="max-width: 500px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border); padding-bottom: 12px;">
+        <h3 id="auth-modal-title" style="font-size: 1.15rem; font-weight: 700; color: var(--color-text-primary);">👤 Kimlik ve Oturum Yönetimi</h3>
+        <button class="drawer-close" onclick="closeAuthModal()">&times;</button>
+      </div>
+      <div style="background: var(--color-brand-50); border: 1px solid var(--color-brand-100); border-radius: var(--radius-md); padding: 12px; font-size: 0.82rem; color: var(--color-brand-800);">
+        🔒 <strong>Üretim Sözleşmesi Uyumlu Mock Adapter (RAM)</strong><br>
+        MoodFeed şu anda güvenli bellek içi modda çalışmaktadır. Gerçek backend API'ye bağlanıldığında <code>window.MoodFeedApiAdapter</code> doğrudan <code>/v1/auth/*</code> ve <code>/v1/feed</code> uç noktalarını kullanır.
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div>
+          <label style="font-size: 0.82rem; color: var(--color-text-muted); display: block; margin-bottom: 4px;">Aktif Oturum Türü</label>
+          <input type="text" value="Anonim Demo Oturumu (RAM-Only)" readonly class="form-input" style="background: var(--color-surface-muted); color: var(--color-text-secondary);">
+        </div>
+        <div>
+          <label style="font-size: 0.82rem; color: var(--color-text-muted); display: block; margin-bottom: 4px;">E-Posta (Simüle Giriş)</label>
+          <input id="mock-auth-email" type="email" placeholder="demo.kullanici@moodfeed.app" value="demo.kullanici@moodfeed.app" class="form-input">
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px;">
+          <button class="btn btn-secondary btn-sm" onclick="closeAuthModal()">Kapat</button>
+          <button class="btn btn-primary btn-sm" onclick="simulateAuthLogin()">Giriş Yap (Mock API)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" aria-live="polite" role="status"></div>
+
+  <!-- Application Script -->
+  <script>
+    /* In-Memory State & Synthetic Content Models */
+    const RAW_FEED_ITEMS = [
+      {
+        content_id: "post-001",
+        id: "post-001",
+        title: "Ekip Çalışması ve İlerleme",
+        author: "Mert Yılmaz",
+        source: "Mert Yılmaz",
+        sourceLabel: "Topluluk Lideri",
+        avatar: "M",
+        time: "10 dk önce",
+        timestamp: "10 dk önce",
+        category: "Topluluk",
+        topic: "İş & Motivasyon",
+        similarityGroup: "grup-topluluk",
+        tags: ["iş", "topluluk", "ilerleme"],
+        text: "Bugün ekip arkadaşımın desteğiyle güzel bir ilerleme kaydettik.",
+        summary: "Ekip desteğiyle kaydedilen olumlu çalışma adımı.",
+        original_score: 0.65,
+        originalRank: 1,
+        original_rank: 1,
+        new_rank: 1,
+        repetitionScore: 0.10,
+        negativityScore: 0.05,
+        intensityScore: 0.15,
+        toxicity_score: 0.0,
+        negativity_score: 0.05,
+        sentiment: { label: "positive", score: 0.88 },
+        moodfeedEligible: true,
+        saved: false,
+        muted: false,
+        dismissed: false,
+        originalVisible: true,
+        moodfeedVisible: true,
+        reason: ["Olumlu içerik tespiti", "Düşük toksisite sinyali", "Çeşitlilik katsayısı"],
+        explanation: {
+          observed: "Pozitif duygu tonu ve çok düşük toksisite sinyali gözlendi.",
+          action: "Akış dengesini korumak için üst sıralardaki konumu pekiştirildi.",
+          control: "İçerik kartından öneriyi geri alabilir veya kaynağı sessize alabilirsiniz.",
+          limitation: "Bu gözlem metin sözlüğüne dayalıdır; klinik duygu durumu tespiti değildir."
+        },
+        interactionState: { viewed: false, saved: false, reverted: false },
+        score_breakdown: { original_score: 0.65, toxicity_penalty: 0.0, negativity_penalty: 0.0, diversity_bonus: 0.0, final_score: 0.65 }
+      },
+      {
+        content_id: "post-002",
+        id: "post-002",
+        title: "Hizmet Şikayeti ve Gerginlik",
+        author: "Ayşe Kaya",
+        source: "Ayşe Kaya",
+        sourceLabel: "Tüketici Deneyimi",
+        avatar: "A",
+        time: "25 dk önce",
+        timestamp: "25 dk önce",
+        category: "Gündem",
+        topic: "Şikayet & Stres",
+        similarityGroup: "grup-gundem-tartisilma",
+        tags: ["şikayet", "hizmet", "gerginlik"],
+        text: "Bu hizmet berbat, herkes çok sinirli ve stresli.",
+        summary: "Hizmet aksaması ve yaşanan stres şikayeti.",
+        original_score: 0.82,
+        originalRank: 2,
+        original_rank: 2,
+        new_rank: 2,
+        repetitionScore: 0.75,
+        negativityScore: 0.85,
+        intensityScore: 0.80,
+        toxicity_score: 0.0,
+        negativity_score: 0.85,
+        sentiment: { label: "negative", score: 0.84 },
+        moodfeedEligible: true,
+        saved: false,
+        muted: false,
+        dismissed: false,
+        originalVisible: true,
+        moodfeedVisible: true,
+        reason: ["Yüksek olumsuzluk oranı"],
+        explanation: {
+          observed: "Yüksek negatiflik ve yoğun şikayet sinyali tespit edildi.",
+          action: "Kullanıcı tercihlerine bağlı olarak olumsuzluk maruziyetini dengelemek için sıralaması ayarlandı.",
+          control: "Sıralamayı Geri Al butonuna basarak anında orijinal sırasına döndürebilirsiniz.",
+          limitation: "İçerik silinmez; yalnızca sıralama önerisi sunulur."
+        },
+        interactionState: { viewed: false, saved: false, reverted: false },
+        score_breakdown: { original_score: 0.82, toxicity_penalty: 0.0, negativity_penalty: 0.15, diversity_bonus: 0.0, final_score: 0.67 }
+      },
+      {
+        content_id: "post-003",
+        id: "post-003",
+        title: "Mahalle Kütüphanesi Buluşması",
+        author: "Caner Demir",
+        source: "Caner Demir",
+        sourceLabel: "Kültür & Sanat",
+        avatar: "C",
+        time: "40 dk önce",
+        timestamp: "40 dk önce",
+        category: "Kültür",
+        topic: "Kitap & Edebiyat",
+        similarityGroup: "grup-kultur-kitap",
+        tags: ["kitap", "kütüphane", "kültür"],
+        text: "Mahalle kütüphanesinde keyifli bir kitap buluşması var.",
+        summary: "Yerel mahalle kütüphanesinde düzenlenen kitap etkinliği.",
+        original_score: 0.58,
+        originalRank: 3,
+        original_rank: 3,
+        new_rank: 3,
+        repetitionScore: 0.20,
+        negativityScore: 0.02,
+        intensityScore: 0.25,
+        toxicity_score: 0.0,
+        negativity_score: 0.02,
+        sentiment: { label: "positive", score: 0.76 },
+        moodfeedEligible: true,
+        saved: false,
+        muted: false,
+        dismissed: false,
+        originalVisible: true,
+        moodfeedVisible: true,
+        reason: ["Dengeleyici kültürel içerik", "İçerik sırası mevcut sinyallerle korundu"],
+        explanation: {
+          observed: "Düşük gerginlik ve yapıcı kültürel paylaşım sinyali.",
+          action: "Akış çeşitliliğini artırmak amacıyla sırası korundu.",
+          control: "İçeriği kaydedebilir veya detaylı analizini inceleyebilirsiniz.",
+          limitation: "Kişisel beğeni tahmini değil, betimleyici metin analizi çıktısıdır."
+        },
+        interactionState: { viewed: false, saved: false, reverted: false },
+        score_breakdown: { original_score: 0.58, toxicity_penalty: 0.0, negativity_penalty: 0.0, diversity_bonus: 0.0, final_score: 0.58 }
+      },
+      {
+        content_id: "post-004",
+        id: "post-004",
+        title: "Sosyal Medya Tartışması",
+        author: "Anonim Kullanıcı",
+        source: "Anonim Kullanıcı",
+        sourceLabel: "Anonim Hesap",
+        avatar: "X",
+        time: "1 saat önce",
+        timestamp: "1 saat önce",
+        category: "Gündem",
+        topic: "Tartışma",
+        similarityGroup: "grup-gundem-tartisilma",
+        tags: ["tartışma", "agresif"],
+        text: "Sen ne kadar aptalsın, defol buradan.",
+        summary: "Agresif ve saldırgan ifade içeren yorum.",
+        original_score: 0.78,
+        originalRank: 4,
+        original_rank: 4,
+        new_rank: 4,
+        repetitionScore: 0.85,
+        negativityScore: 0.90,
+        intensityScore: 0.95,
+        toxicity_score: 0.70,
+        negativity_score: 0.90,
+        sentiment: { label: "negative", score: 0.95 },
+        moodfeedEligible: true,
+        saved: false,
+        muted: false,
+        dismissed: false,
+        originalVisible: true,
+        moodfeedVisible: true,
+        reason: ["Yüksek toksisite cezası uygulandı", "zaten son sırada olduğu için sıra değişmedi"],
+        explanation: {
+          observed: "Belirgin toksik ifade ve yüksek saldırganlık puanı tespit edildi.",
+          action: "Toksisite katsayısı ağırlığıyla sıralaması düşürüldü (içerik asla silinmez).",
+          control: "İsterseniz bu kaynağı tamamen sessize alabilir ya da sıralamayı geri alabilirsiniz.",
+          limitation: "Otomatik moderasyon/sansür değildir; kullanıcı tercihli akış filtresidir."
+        },
+        interactionState: { viewed: false, saved: false, reverted: false },
+        score_breakdown: { original_score: 0.78, toxicity_penalty: 0.245, negativity_penalty: 0.225, diversity_bonus: 0.0, final_score: 0.31 }
+      },
+      {
+        content_id: "post-005",
+        id: "post-005",
+        title: "Açıklanabilir Yapay Zeka Gelişmeleri",
+        author: "Dr. Selin Aksoy",
+        source: "Dr. Selin Aksoy",
+        sourceLabel: "Yapay Zeka Araştırmacısı",
+        avatar: "S",
+        time: "1.5 saat önce",
+        timestamp: "1.5 saat önce",
+        category: "Teknoloji",
+        topic: "Yapay Zeka & Şeffaflık",
+        similarityGroup: "grup-teknoloji",
+        tags: ["yapay zeka", "şeffaflık", "etik"],
+        text: "Yapay zeka modellerinin şeffaflık ve açıklanabilirlik standartları hızla gelişiyor.",
+        summary: "Algoritmik şeffaflık ve açıklanabilirlik ilkelerindeki gelişmeler.",
+        original_score: 0.72,
+        originalRank: 5,
+        original_rank: 5,
+        new_rank: 5,
+        repetitionScore: 0.15,
+        negativityScore: 0.01,
+        intensityScore: 0.30,
+        toxicity_score: 0.0,
+        negativity_score: 0.01,
+        sentiment: { label: "positive", score: 0.90 },
+        moodfeedEligible: true,
+        saved: false,
+        muted: false,
+        dismissed: false,
+        originalVisible: true,
+        moodfeedVisible: true,
+        reason: ["Eğitici ve bilgilendirici içerik", "Düşük risk sinyali"],
+        explanation: {
+          observed: "Yüksek yapıcı duygu ve bilgilendirici teknoloji sinyali.",
+          action: "Pozitif akış dengesi için öne çıkarıldı.",
+          control: "Kaydet veya detay sayfasına git seçenekleri kullanılabilir.",
+          limitation: "Metin analizine dayanır."
+        },
+        interactionState: { viewed: false, saved: false, reverted: false },
+        score_breakdown: { original_score: 0.72, toxicity_penalty: 0.0, negativity_penalty: 0.0, diversity_bonus: 0.0, final_score: 0.72 }
+      },
+      {
+        content_id: "post-006",
+        id: "post-006",
+        title: "Şehir İçi Ulaşım Sıkışıklığı",
+        author: "Emre Koç",
+        source: "Emre Koç",
+        sourceLabel: "Kent Gözlemcisi",
+        avatar: "E",
+        time: "2 saat önce",
+        timestamp: "2 saat önce",
+        category: "Gündem",
+        topic: "Trafik & Ulaşım",
+        similarityGroup: "grup-gundem-ulasim",
+        tags: ["trafik", "şehir", "ulaşım"],
+        text: "Trafik yine kilitlendi, her gün aynı eziyet, bıktım artık.",
+        summary: "Yoğun trafik sıkışıklığı ve günlük ulaşım tepkisi.",
+        original_score: 0.68,
+        originalRank: 6,
+        original_rank: 6,
+        new_rank: 6,
+        repetitionScore: 0.80,
+        negativityScore: 0.75,
+        intensityScore: 0.85,
+        toxicity_score: 0.0,
+        negativity_score: 0.75,
+        sentiment: { label: "negative", score: 0.78 },
+        moodfeedEligible: true,
+        saved: false,
+        muted: false,
+        dismissed: false,
+        originalVisible: true,
+        moodfeedVisible: true,
+        reason: ["Yoğun olumsuzluk sinyali", "Tekrar eden ulaşım şikayeti"],
+        explanation: {
+          observed: "Tekrarlayan olumsuz trafik deneyimi sinyali.",
+          action: "Benzer konu yoğunluğunu hafifletmek için sıralamada dengelendi.",
+          control: "Sıralamayı Geri Al butonunu kullanabilirsiniz.",
+          limitation: "Yalnızca demo oturumu sinyalidir."
+        },
+        interactionState: { viewed: false, saved: false, reverted: false },
+        score_breakdown: { original_score: 0.68, toxicity_penalty: 0.0, negativity_penalty: 0.12, diversity_bonus: 0.0, final_score: 0.56 }
+      },
+      {
+        content_id: "post-007",
+        id: "post-007",
+        title: "Açık Kaynak Kod Atölyesi",
+        author: "Zeynep Arslan",
+        source: "Zeynep Arslan",
+        sourceLabel: "Yazılım Eğitmeni",
+        avatar: "Z",
+        time: "2.5 saat önce",
+        timestamp: "2.5 saat önce",
+        category: "Teknoloji",
+        topic: "Açık Kaynak & Kod",
+        similarityGroup: "grup-teknoloji",
+        tags: ["açık kaynak", "yazılım", "atölye"],
+        text: "Açık kaynak yazılım toplulukları yerel atölyeler düzenliyor, katılım ücretsiz.",
+        summary: "Topluluk temelli ücretsiz açık kaynak kodlama etkinliği duyurusu.",
+        original_score: 0.64,
+        originalRank: 7,
+        original_rank: 7,
+        new_rank: 7,
+        repetitionScore: 0.10,
+        negativityScore: 0.02,
+        intensityScore: 0.20,
+        toxicity_score: 0.0,
+        negativity_score: 0.02,
+        sentiment: { label: "positive", score: 0.85 },
+        moodfeedEligible: true,
+        saved: false,
+        muted: false,
+        dismissed: false,
+        originalVisible: true,
+        moodfeedVisible: true,
+        reason: ["Topluluk ve paylaşım odaklı"],
+        explanation: {
+          observed: "Pozitif topluluk ve öğrenme sinyalleri.",
+          action: "Çeşitlilik katsayısıyla desteklendi.",
+          control: "Kaydet ve paylaş seçenekleri aktiftir.",
+          limitation: "Kişisel veri içermez."
+        },
+        interactionState: { viewed: false, saved: false, reverted: false },
+        score_breakdown: { original_score: 0.64, toxicity_penalty: 0.0, negativity_penalty: 0.0, diversity_bonus: 0.0, final_score: 0.64 }
+      },
+      {
+        content_id: "post-008",
+        id: "post-008",
+        title: "Dijital Maruziyet Farkındalığı",
+        author: "Uzm. Burak Yıldız",
+        source: "Uzm. Burak Yıldız",
+        sourceLabel: "Teknoloji Sosyoloğu",
+        avatar: "B",
+        time: "3 saat önce",
+        timestamp: "3 saat önce",
+        category: "Bilim",
+        topic: "Dijital Alışkanlıklar",
+        similarityGroup: "grup-bilim-dijital",
+        tags: ["farkındalık", "dijital", "bilim"],
+        text: "Sürekli olumsuz haber akışına maruz kalmak odaklanmayı güçleştirebiliyor.",
+        summary: "Sürekli negatif haber akışının dikkat üzerindeki etkisine dair analitik not.",
+        original_score: 0.60,
+        originalRank: 8,
+        original_rank: 8,
+        new_rank: 8,
+        repetitionScore: 0.30,
+        negativityScore: 0.40,
+        intensityScore: 0.50,
+        toxicity_score: 0.0,
+        negativity_score: 0.40,
+        sentiment: { label: "neutral", score: 0.65 },
+        moodfeedEligible: true,
+        saved: false,
+        muted: false,
+        dismissed: false,
+        originalVisible: true,
+        moodfeedVisible: true,
+        reason: ["Dengeli analitik bakış açısı"],
+        explanation: {
+          observed: "Nötr tonlu, analitik ve yapıcı içerik sinyali.",
+          action: "Sıralamada dengeli bir konuma yerleştirildi.",
+          control: "Kararı inceleyebilir veya sıralamayı değiştirebilirsiniz.",
+          limitation: "Tanı veya tıbbi tavsiye değildir."
+        },
+        interactionState: { viewed: false, saved: false, reverted: false },
+        score_breakdown: { original_score: 0.60, toxicity_penalty: 0.0, negativity_penalty: 0.05, diversity_bonus: 0.0, final_score: 0.55 }
+      },
+      {
+        content_id: "post-009",
+        id: "post-009",
+        title: "Doğa Yürüyüşü ve Fotoğrafçılık",
+        author: "Deniz Özkan",
+        source: "Deniz Özkan",
+        sourceLabel: "Doğa Fotoğrafçısı",
+        avatar: "D",
+        time: "4 saat önce",
+        timestamp: "4 saat önce",
+        category: "Topluluk",
+        topic: "Doğa & Yaşam",
+        similarityGroup: "grup-topluluk",
+        tags: ["doğa", "fotoğraf", "yürüyüş"],
+        text: "Şehir parkında hafta sonu doğa yürüyüşü ve fotoğraf atölyesi gerçekleşti.",
+        summary: "Hafta sonu parkta düzenlenen doğa ve fotoğrafçılık etkinliği.",
+        original_score: 0.55,
+        originalRank: 9,
+        original_rank: 9,
+        new_rank: 9,
+        repetitionScore: 0.15,
+        negativityScore: 0.01,
+        intensityScore: 0.10,
+        toxicity_score: 0.0,
+        negativity_score: 0.01,
+        sentiment: { label: "positive", score: 0.82 },
+        moodfeedEligible: true,
+        saved: false,
+        muted: false,
+        dismissed: false,
+        originalVisible: true,
+        moodfeedVisible: true,
+        reason: ["Pozitif ve rahatlatıcı içerik"],
+        explanation: {
+          observed: "Yüksek pozitiflik ve dinlendirici konu grubu sinyali.",
+          action: "Akışın genel gerginliğini düşürmek için üst sıralara desteklendi.",
+          control: "Kaydet ve Geri Al butonları hazırdır.",
+          limitation: "Kullanıcı profil verisi saklanmaz."
+        },
+        interactionState: { viewed: false, saved: false, reverted: false },
+        score_breakdown: { original_score: 0.55, toxicity_penalty: 0.0, negativity_penalty: 0.0, diversity_bonus: 0.0, final_score: 0.55 }
+      },
+      {
+        content_id: "post-010",
+        id: "post-010",
+        title: "Aşırı Tepkisel Yorum",
+        author: "Kullanıcı99",
+        source: "Kullanıcı99",
+        sourceLabel: "Sosyal Yorumcu",
+        avatar: "K",
+        time: "5 saat önce",
+        timestamp: "5 saat önce",
+        category: "Gündem",
+        topic: "Tartışma",
+        similarityGroup: "grup-gundem-tartisilma",
+        tags: ["tartışma", "agresif"],
+        text: "Hiçbir şeyden anlamayan cahiller yine toplanmış konuşuyor.",
+        summary: "Aşağılayıcı ve gergin üsluplu sosyal medya yorumu.",
+        original_score: 0.70,
+        originalRank: 10,
+        original_rank: 10,
+        new_rank: 10,
+        repetitionScore: 0.70,
+        negativityScore: 0.80,
+        intensityScore: 0.90,
+        toxicity_score: 0.65,
+        negativity_score: 0.80,
+        sentiment: { label: "negative", score: 0.90 },
+        moodfeedEligible: true,
+        saved: false,
+        muted: false,
+        dismissed: false,
+        originalVisible: true,
+        moodfeedVisible: true,
+        reason: ["Toksisite cezası uygulandı"],
+        explanation: {
+          observed: "Saldırgan dil ve yüksek negatif kutup sinyali.",
+          action: "Toksisite ve negatiflik cezalarıyla sırası geriye çekildi.",
+          control: "Kaynağı sessize alabilir ya da öneriyi geri alabilirsiniz.",
+          limitation: "İçerik silinmez; yalnızca algoritma sıralama önerisi sunar."
+        },
+        interactionState: { viewed: false, saved: false, reverted: false },
+        score_breakdown: { original_score: 0.70, toxicity_penalty: 0.227, negativity_penalty: 0.20, diversity_bonus: 0.0, final_score: 0.27 }
+      }
+    ];
+
+    const appState = {
+      theme: "light",
+      onboardingCompleted: false,
+      onboardingStep: 1,
+      currentRoute: "welcome",
+      activeProfile: "balanced",
+      activeScenario: "default",
+      moodfeedEnabled: true,
+      feedFilter: "all",
+      searchQuery: "",
+      sortBy: "recommended",
+      savedItemIds: new Set(),
+      mutedSources: new Set(),
+      mutedCategories: new Set(),
+      revertedItemIds: new Set(),
+      activeDetailContentId: null,
+      selectedDrawerContentId: null,
+      lastActiveTrigger: null,
+      tourStep: 1,
+      compareSingleColumn: false,
+      interactionLogs: ["Oturum başlatıldı (RAM bellek)."]
+    };
+
+    // Pilot State in RAM
+    const pilotSession = {
+      active: false,
+      consentGiven: false,
+      sessionId: null,
+      startTime: null,
+      endTime: null,
+      tasks: {
+        viewDecision: false,
+        changeProfile: false,
+        changeScenario: false,
+        revertItem: false,
+        toggleMoodFeed: false,
+        fillSurvey: false
+      },
+      taskMetrics: {
+        viewDecision: { name: "1. Kararı İncele", status: "pending", startedAt: null, completedAt: null, durationMs: 0, errorCount: 0, retryCount: 0 },
+        changeProfile: { name: "2. Profili Değiştir", status: "pending", startedAt: null, completedAt: null, durationMs: 0, errorCount: 0, retryCount: 0 },
+        changeScenario: { name: "3. Sentetik Senaryoyu Aç", status: "pending", startedAt: null, completedAt: null, durationMs: 0, errorCount: 0, retryCount: 0 },
+        revertItem: { name: "4. Öneriyi Geri Al", status: "pending", startedAt: null, completedAt: null, durationMs: 0, errorCount: 0, retryCount: 0 },
+        toggleMoodFeed: { name: "5. MoodFeed'i Kapat/Aç", status: "pending", startedAt: null, completedAt: null, durationMs: 0, errorCount: 0, retryCount: 0 },
+        fillSurvey: { name: "6. Anketi Tamamla", status: "pending", startedAt: null, completedAt: null, durationMs: 0, errorCount: 0, retryCount: 0 }
+      },
+      surveyRatings: {},
+      surveyOpen: { q1: "", q2: "", q3: "" },
+      surveyCompleted: false
+    };
+
+    let lastFeedData = null;
+
+    /* Utility Functions */
     function score(value) { return Number(value).toFixed(2); }
-    function addMeta(card, text) { const item = document.createElement("span"); item.className = "badge"; item.textContent = text; card.append(item); }
-    function showReason(reasons) { reasonsElement.replaceChildren(); reasons.forEach((reason) => { const item = document.createElement("li"); item.textContent = reason; reasonsElement.append(item); }); panelElement.style.display = "block"; panelElement.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
-    function renderScorer(scorer) {
-      if (!scorer || scorer.name === "rule_based") {
-        scorerElement.className = "scorer-badge";
-        scorerElement.textContent = "⚡ Aktif analiz: Kural Tabanlı";
-        subtitleElement.textContent = "Açıklanabilir, kural tabanlı Türkçe akış prototipi";
-        return;
-      }
-      if (scorer.name === "berturk" && !scorer.fallback) {
-        scorerElement.className = "scorer-badge berturk";
-        scorerElement.textContent = `🤖 Aktif analiz: BERTurk (Model: ${scorer.model_name || "Omar1010/bert-turkish-sentiment"})`;
-        subtitleElement.textContent = "Açıklanabilir, BERTurk destekli Türkçe akış prototipi";
-        return;
-      }
-      if (scorer.fallback || scorer.name === "rule_based_fallback") {
-        scorerElement.className = "scorer-badge fallback";
-        scorerElement.textContent = "⚠️ Aktif analiz: Kural Tabanlı Fallback (BERTurk yüklenemedi; kural tabanlı analiz kullanılıyor.)";
-        subtitleElement.textContent = "Açıklanabilir, kural tabanlı yedek modlu Türkçe akış prototipi";
-        return;
-      }
-      scorerElement.className = "scorer-badge";
-      scorerElement.textContent = `⚡ Aktif analiz: ${scorer.label || "Kural Tabanlı"}`;
+
+    function formatSignalLevel(val) {
+      if (val < 0.33) return { label: "Düşük", className: "signal-low" };
+      if (val < 0.66) return { label: "Orta", className: "signal-medium" };
+      return { label: "Yüksek", className: "signal-high" };
     }
-    function renderFeed(data) {
-      feedElement.replaceChildren(); panelElement.style.display = "none"; toggleElement.checked = data.moodfeed_enabled;
-      riskElement.textContent = `Spiral risk: ${data.spiral_risk.level} (${score(data.spiral_risk.score)})`;
-      renderScorer(data.scorer);
-      data.contents.forEach((content) => {
-        const card = document.createElement("article"); card.className = `card ${content.sentiment.label}`;
-        const text = document.createElement("p"); text.textContent = content.text; card.append(text);
-        const meta = document.createElement("div"); meta.className = "meta";
-        addMeta(meta, `Duygu: ${content.sentiment.label}`); addMeta(meta, `Toksisite: ${score(content.toxicity_score)}`); addMeta(meta, `Olumsuzluk: ${score(content.negativity_score)}`); addMeta(meta, `Sıra: ${content.original_rank} → ${content.new_rank}`); card.append(meta);
-        const button = document.createElement("button"); button.textContent = "Neden bu sırada?"; button.addEventListener("click", () => showReason(content.reason)); card.append(button); feedElement.append(card);
+
+    function showToast(message) {
+      const container = document.getElementById("toast-container");
+      const toast = document.createElement("div");
+      toast.className = "toast";
+      toast.textContent = message;
+      container.append(toast);
+      setTimeout(() => {
+        toast.style.opacity = "0";
+        setTimeout(() => toast.remove(), 200);
+      }, 2500);
+    }
+
+    function addLog(actionText) {
+      appState.interactionLogs.unshift(`${new Date().toLocaleTimeString("tr-TR")}: ${actionText}`);
+      if (appState.interactionLogs.length > 20) appState.interactionLogs.pop();
+      renderInsightsLogs();
+    }
+
+    function toggleTheme() {
+      appState.theme = (appState.theme === "light") ? "dark" : "light";
+      document.documentElement.setAttribute("data-theme", appState.theme);
+      document.getElementById("theme-icon").textContent = (appState.theme === "light") ? "🌙" : "☀️";
+      showToast(`Tema değiştirildi: ${appState.theme === 'light' ? 'Açık Tema' : 'Koyu Tema'}`);
+    }
+
+    function toggleSidebar(open) {
+      const sidebar = document.getElementById("app-sidebar");
+      const backdrop = document.getElementById("sidebar-backdrop");
+      if (open) {
+        sidebar.classList.add("open");
+        backdrop.classList.add("open");
+      } else {
+        sidebar.classList.remove("open");
+        backdrop.classList.remove("open");
+      }
+    }
+
+    /* Router State Machine */
+    const VALID_ROUTES = [
+      "welcome", "onboarding", "feed", "results", "insights", "compare",
+      "preferences", "settings", "help", "pilot-consent", "pilot-survey", "pilot-results",
+      "scenario", "profile", "analyzing"
+    ];
+
+    function navigateTo(route, pushHash = true) {
+      toggleSidebar(false);
+
+      if (route.startsWith("content/")) {
+        const id = route.split("/")[1];
+        showContentDetail(id, pushHash);
+        return;
+      }
+
+      if (route.startsWith("decision/")) {
+        const id = route.split("/")[1];
+        navigateTo("feed", false);
+        openDrawerForId(id);
+        return;
+      }
+
+      let targetScreenId = "screen-" + route;
+      if (route === "results") targetScreenId = "screen-feed";
+      if (route === "scenario" || route === "profile") targetScreenId = "screen-preferences";
+      if (route === "analyzing") targetScreenId = "screen-feed";
+
+      const targetEl = document.getElementById(targetScreenId);
+      if (!targetEl) {
+        document.querySelectorAll(".page-screen").forEach(el => el.classList.remove("active"));
+        document.getElementById("screen-not-found").classList.add("active");
+        document.getElementById("header-page-title").textContent = "Sayfa Bulunamadı (404)";
+        return;
+      }
+
+      document.querySelectorAll(".page-screen").forEach(el => el.classList.remove("active"));
+      targetEl.classList.add("active");
+      appState.currentRoute = route;
+
+      if (pushHash) {
+        window.location.hash = (route === "welcome") ? "" : `#${route}`;
+      }
+
+      document.querySelectorAll(".nav-item").forEach(item => item.classList.remove("active"));
+      document.querySelectorAll(".mobile-nav-btn").forEach(item => item.classList.remove("active"));
+
+      const activeNav = document.getElementById(`nav-${route}`);
+      if (activeNav) activeNav.classList.add("active");
+      const mobNav = document.getElementById(`mob-${route}`);
+      if (mobNav) mobNav.classList.add("active");
+
+      const titles = {
+        welcome: "📋 Genel Bakış",
+        onboarding: "🚀 Başlangıç Rehberi",
+        feed: "📋 Ana Akış",
+        insights: "📊 Öngörüler (Insights)",
+        compare: "⚖️ Karşılaştır (A/B)",
+        preferences: "🎛️ Akış Tercihleri",
+        settings: "⚙️ Ayarlar & Gizlilik",
+        help: "❓ Nasıl Çalışır?",
+        "pilot-consent": "🧪 Pilot Onamı",
+        "pilot-survey": "📝 Pilot Anketi",
+        "pilot-results": "📊 Pilot Sonuçları"
+      };
+      document.getElementById("header-page-title").textContent = titles[route] || "MoodFeed";
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+
+      if (route === "compare") renderCompareView();
+      if (route === "insights") renderInsightsView();
+      if (route === "feed") renderMainFeed();
+    }
+
+    function onHashChange() {
+      const hash = window.location.hash.replace("#", "").trim();
+      if (!hash) {
+        navigateTo("welcome", false);
+        return;
+      }
+      if (hash.startsWith("content/")) {
+        const id = hash.split("/")[1];
+        showContentDetail(id, false);
+        return;
+      }
+      navigateTo(hash, false);
+    }
+    window.addEventListener("hashchange", onHashChange);
+
+    /* Onboarding */
+    function nextOnboardingStep() {
+      if (appState.onboardingStep < 3) {
+        appState.onboardingStep++;
+        updateOnboardingUI();
+      } else {
+        completeOnboarding();
+      }
+    }
+
+    function prevOnboardingStep() {
+      if (appState.onboardingStep > 1) {
+        appState.onboardingStep--;
+        updateOnboardingUI();
+      }
+    }
+
+    function updateOnboardingUI() {
+      for (let i = 1; i <= 3; i++) {
+        document.getElementById(`onboarding-step-${i}`).style.display = (i === appState.onboardingStep) ? "flex" : "none";
+        const ind = document.getElementById(`step-ind-${i}`);
+        ind.className = "step-pill" + (i === appState.onboardingStep ? " active" : (i < appState.onboardingStep ? " done" : ""));
+      }
+      document.getElementById("onboarding-step-pill").textContent = `Adım ${appState.onboardingStep}/3`;
+      document.getElementById("onboarding-back-btn").style.display = (appState.onboardingStep > 1) ? "inline-flex" : "none";
+      document.getElementById("onboarding-next-btn").textContent = (appState.onboardingStep === 3) ? "✓ Tamamla ve Akışı Aç →" : "İleri →";
+    }
+
+    function completeOnboarding() {
+      appState.onboardingCompleted = true;
+      showToast("Başlangıç rehberi tamamlandı.");
+      navigateTo("feed");
+    }
+
+    /* Feed Filtering */
+    function getFilteredFeedItems() {
+      return RAW_FEED_ITEMS.filter(item => {
+        if (appState.mutedSources.has(item.author)) return false;
+
+        if (appState.searchQuery) {
+          const q = appState.searchQuery.toLowerCase();
+          const match = item.title.toLowerCase().includes(q) ||
+                        item.text.toLowerCase().includes(q) ||
+                        item.author.toLowerCase().includes(q) ||
+                        item.category.toLowerCase().includes(q);
+          if (!match) return false;
+        }
+
+        if (appState.feedFilter === "saved") return appState.savedItemIds.has(item.content_id);
+        if (appState.feedFilter === "recent") return item.original_rank <= 5;
+        if (appState.feedFilter === "low_density") return item.toxicity_score === 0.0 && item.negativity_score < 0.2;
+        if (appState.feedFilter === "explained") return item.reason && item.reason.length > 0;
+
+        return true;
+      }).sort((a, b) => {
+        if (appState.sortBy === "original") return a.original_rank - b.original_rank;
+        if (appState.sortBy === "least_repetition") return a.negativity_score - b.negativity_score;
+        if (appState.sortBy === "most_explainable") return b.reason.length - a.reason.length;
+
+        const rankA = appState.revertedItemIds.has(a.content_id) || !appState.moodfeedEnabled ? a.original_rank : a.new_rank;
+        const rankB = appState.revertedItemIds.has(b.content_id) || !appState.moodfeedEnabled ? b.original_rank : b.new_rank;
+        return rankA - rankB;
       });
     }
-    async function loadFeed() {
-      try { const response = await fetch("/feed"); if (!response.ok) throw new Error("Akış yüklenemedi."); renderFeed(await response.json()); }
-      catch (error) { feedElement.textContent = error.message; feedElement.className = "error"; }
+
+    function renderMainFeed() {
+      const container = document.getElementById("main-feed-stream");
+      if (!container) return;
+      container.replaceChildren();
+      const items = getFilteredFeedItems();
+
+      document.getElementById("feed-results-counter").textContent = `${items.length} içerik listeleniyor`;
+      document.getElementById("count-saved").textContent = appState.savedItemIds.size;
+
+      if (items.length === 0) {
+        const emptyBox = document.createElement("div");
+        emptyBox.className = "state-box";
+        emptyBox.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--color-text-primary);">Aramanıza veya filtrenize uygun içerik bulunamadı.</h3>
+          <p>Farklı bir arama terimi deneyebilir veya filtreleri sıfırlayabilirsiniz.</p>
+          <button class="btn btn-secondary btn-sm" onclick="clearSearchAndFilters()">Filtreleri Temizle</button>
+        `;
+        container.append(emptyBox);
+        return;
+      }
+
+      items.forEach(content => {
+        const isSaved = appState.savedItemIds.has(content.content_id);
+        const isReverted = appState.revertedItemIds.has(content.content_id);
+        const currentRank = (isReverted || !appState.moodfeedEnabled) ? content.original_rank : content.new_rank;
+
+        const card = document.createElement("article");
+        card.className = `feed-card${isReverted ? ' card-reverted' : ''}`;
+
+        let rankBadgeClass = "badge-same";
+        let rankText = "↔ Korundu";
+        const diff = content.original_rank - content.new_rank;
+        if (diff > 0) { rankBadgeClass = "badge-up"; rankText = `↑ +${diff} Öne çıktı`; }
+        else if (diff < 0) { rankBadgeClass = "badge-down"; rankText = `↓ ${diff} Geriye çekildi`; }
+
+        const toxLvl = formatSignalLevel(content.toxicity_score);
+        const negLvl = formatSignalLevel(content.negativity_score);
+        const repLvl = formatSignalLevel(content.repetitionScore || 0.2);
+
+        card.innerHTML = `
+          <div class="card-meta-top">
+            <div class="author-info">
+              <div class="author-avatar">${content.avatar}</div>
+              <span>${content.author}</span>
+              <span class="badge badge-demo">Demo İçerik</span>
+            </div>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <span>${content.time}</span>
+              <span class="badge badge-rank">${content.category}</span>
+            </div>
+          </div>
+
+          <div class="card-title-text">${content.title}</div>
+          <p class="card-body-text">${content.text}</p>
+
+          <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+            <span class="signal-pill ${toxLvl.className}">Toksisite: ${toxLvl.label}</span>
+            <span class="signal-pill ${negLvl.className}">Negatiflik: ${negLvl.label}</span>
+            <span class="signal-pill ${repLvl.className}">Tekrar: ${repLvl.label}</span>
+            ${content.tags ? content.tags.map(t => `<span class="tag-pill">#${t}</span>`).join('') : ''}
+          </div>
+
+          <div class="card-meters">
+            <div class="meter-row">
+              <span style="color: var(--color-text-secondary);">Toksisite Sinyali (${score(content.toxicity_score)})</span>
+              <div class="meter-track"><div class="meter-fill tox" style="width: ${Math.min(100, content.toxicity_score * 100)}%;"></div></div>
+            </div>
+            <div class="meter-row">
+              <span style="color: var(--color-text-secondary);">Olumsuzluk Sinyali (${score(content.negativity_score)})</span>
+              <div class="meter-track"><div class="meter-fill neg" style="width: ${Math.min(100, content.negativity_score * 100)}%;"></div></div>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 2px;">
+            <span class="badge badge-rank">Sıra: #${content.original_rank} ➔ #${content.new_rank}</span>
+            ${appState.moodfeedEnabled && !isReverted ? `<span class="badge ${rankBadgeClass}">${rankText}</span>` : ''}
+            <span class="badge ${content.sentiment.label === 'positive' ? 'badge-positive' : content.sentiment.label === 'negative' ? 'badge-negative' : 'badge-neutral'}">Duygu: ${content.sentiment.label}</span>
+          </div>
+
+          ${isReverted ? `<div style="font-size: 0.76rem; color: var(--color-accent); background: var(--color-accent-soft); padding: 4px 8px; border-radius: var(--radius-sm); border: 1px solid var(--color-accent-border);">↩️ Öneri geri alındı; orijinal sıra (#${content.original_rank}) korunuyor.</div>` : ''}
+
+          <div class="card-actions-bar">
+            <div class="card-actions-left">
+              <button class="btn btn-secondary btn-sm" onclick="toggleSaveItem('${content.content_id}')">${isSaved ? '★ Kaydedildi' : '🔖 Kaydet'}</button>
+              <button class="btn btn-ghost btn-sm" onclick="simulateShare('${content.content_id}')">🔗 Paylaş</button>
+              <button class="btn btn-ghost btn-sm" onclick="navigateTo('content/${content.content_id}')">🔍 Detay</button>
+            </div>
+            <div class="card-actions-right">
+              <button class="btn btn-secondary btn-sm" onclick="reduceSimilarGroup('${content.category}')" title="Bu kategori için benzer içerik yoğunluğunu azalt">🌿 Daha az benzer</button>
+              <button class="btn btn-secondary btn-sm" onclick="openDrawerForId('${content.content_id}', this)">❓ Neden Burada?</button>
+              <button class="btn btn-secondary btn-sm" onclick="toggleRevert('${content.content_id}')">${isReverted ? 'Öneriyi Uygula' : 'Sıralamayı Geri Al'}</button>
+            </div>
+          </div>
+        `;
+
+        container.append(card);
+      });
     }
-    toggleElement.addEventListener("change", async () => { await fetch("/settings/toggle", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ enabled: toggleElement.checked }) }); await loadFeed(); });
-    loadFeed();
+
+    function setFeedFilter(filterKey) {
+      appState.feedFilter = filterKey;
+      document.querySelectorAll(".filter-tab-btn").forEach(btn => btn.classList.remove("active"));
+      const activeBtn = document.getElementById(`tab-${filterKey}`);
+      if (activeBtn) activeBtn.classList.add("active");
+      renderMainFeed();
+    }
+
+    function handleSearchInput(val) {
+      appState.searchQuery = val.trim();
+      document.getElementById("feed-search-clear").style.display = appState.searchQuery ? "inline-block" : "none";
+      renderMainFeed();
+    }
+
+    function clearSearch() {
+      document.getElementById("feed-search-input").value = "";
+      appState.searchQuery = "";
+      document.getElementById("feed-search-clear").style.display = "none";
+      renderMainFeed();
+    }
+
+    function clearSearchAndFilters() {
+      clearSearch();
+      setFeedFilter("all");
+    }
+
+    function handleSortChange(sortVal) {
+      appState.sortBy = sortVal;
+      renderMainFeed();
+    }
+
+    function toggleSaveItem(id) {
+      if (appState.savedItemIds.has(id)) {
+        appState.savedItemIds.delete(id);
+        showToast("İçerik kaydedilenlerden çıkarıldı.");
+        addLog(`İçerik kaydedilenlerden çıkarıldı (ID: ${id})`);
+      } else {
+        appState.savedItemIds.add(id);
+        showToast("İçerik kaydedildi.");
+        addLog(`İçerik kaydedildi (ID: ${id})`);
+      }
+      renderMainFeed();
+    }
+
+    function simulateShare(id) {
+      showToast("✓ Gönderi bağlantısı panoya kopyalandı (Demo).");
+      addLog(`Gönderi paylaşıldı (ID: ${id})`);
+    }
+
+    function toggleRevert(id) {
+      if (appState.revertedItemIds.has(id)) {
+        appState.revertedItemIds.delete(id);
+        showToast("Sıralama önerisi tekrar uygulandı.");
+        addLog(`Öneri tekrar uygulandı (ID: ${id})`);
+      } else {
+        appState.revertedItemIds.add(id);
+        showToast("İçerik için sıralama geri alındı.");
+        addLog(`Öneri geri alındı (ID: ${id})`);
+      }
+      completePilotTask("revertItem");
+      renderMainFeed();
+      renderCompareView();
+    }
+
+    function reduceSimilarGroup(category) {
+      showToast(`'${category}' kategorisi için benzer içerik sıklığı azaltıldı.`);
+      addLog(`Kategori yoğunluğu azaltıldı: ${category}`);
+      handlePrefProfileChange("calmer");
+    }
+
+    function muteSource(authorName) {
+      appState.mutedSources.add(authorName);
+      showToast(`'${authorName}' kaynağından gelen içerikler sessize alındı.`);
+      addLog(`Kaynak sessize alındı: ${authorName}`);
+      renderMainFeed();
+      renderMutedSourcesList();
+    }
+
+    function unmuteSource(authorName) {
+      appState.mutedSources.delete(authorName);
+      showToast(`'${authorName}' kaynağının sesi açıldı.`);
+      addLog(`Kaynak sesi açıldı: ${authorName}`);
+      renderMainFeed();
+      renderMutedSourcesList();
+    }
+
+    function renderMutedSourcesList() {}
+
+    /* Content Detail Screen */
+    function showContentDetail(id, pushHash = true) {
+      const content = RAW_FEED_ITEMS.find(item => item.content_id === id);
+      if (!content) {
+        document.querySelectorAll(".page-screen").forEach(el => el.classList.remove("active"));
+        document.getElementById("screen-not-found").classList.add("active");
+        document.getElementById("header-page-title").textContent = "İçerik Bulunamadı (404)";
+        return;
+      }
+
+      appState.activeDetailContentId = id;
+      document.querySelectorAll(".page-screen").forEach(el => el.classList.remove("active"));
+      document.getElementById("screen-content").classList.add("active");
+      document.getElementById("header-page-title").textContent = `İçerik Detayı: ${content.title.slice(0, 24)}...`;
+
+      document.getElementById("detail-author-avatar").textContent = content.avatar;
+      document.getElementById("detail-author").textContent = `${content.author} (${content.category})`;
+      document.getElementById("detail-timestamp").textContent = content.time;
+      document.getElementById("detail-title").textContent = content.title;
+      document.getElementById("detail-body").textContent = content.text;
+
+      const isSaved = appState.savedItemIds.has(content.content_id);
+      const isReverted = appState.revertedItemIds.has(content.content_id);
+
+      document.getElementById("detail-save-btn").textContent = isSaved ? "★ Kaydedildi" : "🔖 Kaydet";
+      document.getElementById("detail-revert-btn").textContent = isReverted ? "Öneriyi Uygula" : "↩️ Öneriyi Geri Al";
+
+      document.getElementById("detail-rank-orig").textContent = `Orijinal Sıra: #${content.original_rank}`;
+      document.getElementById("detail-rank-new").textContent = `MoodFeed Sırası: #${isReverted ? content.original_rank : content.new_rank}`;
+
+      if (pushHash) {
+        window.location.hash = `#content/${id}`;
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function toggleSaveDetailItem() {
+      if (appState.activeDetailContentId) {
+        toggleSaveItem(appState.activeDetailContentId);
+        showContentDetail(appState.activeDetailContentId, false);
+      }
+    }
+
+    function toggleRevertDetailItem() {
+      if (appState.activeDetailContentId) {
+        toggleRevert(appState.activeDetailContentId);
+        showContentDetail(appState.activeDetailContentId, false);
+      }
+    }
+
+    function openDrawerForDetail() {
+      if (appState.activeDetailContentId) {
+        openDrawerForId(appState.activeDetailContentId);
+      }
+    }
+
+    /* Explanation Drawer */
+    function openDrawerForId(id, triggerBtn = null) {
+      const content = RAW_FEED_ITEMS.find(item => item.content_id === id);
+      if (!content) return;
+
+      appState.selectedDrawerContentId = id;
+      appState.lastActiveTrigger = triggerBtn || document.activeElement;
+
+      const drawer = document.getElementById("drawer");
+      const overlay = document.getElementById("drawer-overlay");
+      const drawerBody = document.getElementById("drawer-content");
+
+      const toxLvl = formatSignalLevel(content.toxicity_score);
+      const negLvl = formatSignalLevel(content.negativity_score);
+      const exp = content.explanation || {
+        observed: "Düşük toksisite ve dengeli içerik sinyalleri gözlendi.",
+        action: "Akış dengesini korumak için sıralamada önceliklendirildi.",
+        control: "Öneriyi geri alabilir veya kaynağı sessize alabilirsiniz.",
+        limitation: "Bu gözlem sözlük tabanlıdır; klinik değerlendirme değildir."
+      };
+
+      drawerBody.innerHTML = `
+        <div style="font-size: 0.8rem; color: var(--color-text-tertiary);">İçerik ID: <strong>${content.content_id}</strong></div>
+        <div style="font-size: 1.1rem; font-weight: 700; color: var(--color-text-primary); line-height: 1.35;">${content.title}</div>
+        <p style="font-size: 0.88rem; color: var(--color-text-secondary); background: var(--color-surface-subtle); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--color-border-subtle);">${content.text}</p>
+
+        <!-- 4 Sütunlu Karar Zaman Çizelgesi (Decision Trace / Dikey Karar İzi) -->
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 4px;">
+          <div class="exp-step-card">
+            <span class="exp-step-title">1. Gözlenen Sinyal</span>
+            <div class="exp-step-body">${exp.observed}</div>
+            <div style="display: flex; gap: 6px; margin-top: 4px;">
+              <span class="signal-pill ${toxLvl.className}">Toksisite: ${toxLvl.label} (${score(content.toxicity_score)})</span>
+              <span class="signal-pill ${negLvl.className}">Negatiflik: ${negLvl.label} (${score(content.negativity_score)})</span>
+            </div>
+          </div>
+
+          <div class="exp-step-card">
+            <span class="exp-step-title">2. MoodFeed Etkisi</span>
+            <div class="exp-step-body">${exp.action}</div>
+            <div style="font-size: 0.8rem; font-weight: 600; color: var(--color-brand-700); margin-top: 2px;">
+              Sıra Değişimi: #${content.original_rank} (Orijinal) ➔ #${content.new_rank} (MoodFeed)
+            </div>
+          </div>
+
+          <div class="exp-step-card">
+            <span class="exp-step-title">3. Kullanıcı Kontrolü</span>
+            <div class="exp-step-body">${exp.control}</div>
+            <div style="display: flex; gap: 6px; margin-top: 6px;">
+              <button class="btn btn-secondary btn-sm" onclick="toggleRevert('${content.content_id}'); closeDrawer();">↩️ Sıralamayı Geri Al</button>
+              <button class="btn btn-secondary btn-sm" onclick="muteSource('${content.author}'); closeDrawer();">🔇 Kaynağı Sessize Al</button>
+            </div>
+          </div>
+
+          <div class="exp-step-card" style="background: var(--color-surface-subtle); border-color: var(--color-border-subtle);">
+            <span class="exp-step-title" style="color: var(--color-text-tertiary);">4. Kararın Sınırları</span>
+            <div class="exp-step-body" style="font-size: 0.8rem; color: var(--color-text-secondary);">${exp.limitation}</div>
+          </div>
+        </div>
+
+        <!-- Matematiksel Skor Formülü -->
+        <div style="background: var(--color-surface-muted); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px; font-size: 0.78rem; font-family: var(--font-mono); margin-top: 4px;">
+          <div style="font-weight: 700; color: var(--color-text-primary); margin-bottom: 4px;">Matematiksel Skor Formülü:</div>
+          <div>ranking_score = clamp(S_orig - W_tox*T - W_neg*N*R + W_div*D*R)</div>
+          <div style="margin-top: 4px; color: var(--color-brand-700);">Nihai Puan: ${score(content.score_breakdown ? content.score_breakdown.final_score : 0.65)}</div>
+        </div>
+      `;
+
+      drawer.classList.add("open");
+      overlay.classList.add("open");
+      drawer.setAttribute("aria-hidden", "false");
+      document.getElementById("drawer-close").focus();
+
+      completePilotTask("viewDecision");
+    }
+
+    function closeDrawer() {
+      const drawer = document.getElementById("drawer");
+      const overlay = document.getElementById("drawer-overlay");
+      if (drawer) {
+        drawer.classList.remove("open");
+        drawer.setAttribute("aria-hidden", "true");
+      }
+      if (overlay) overlay.classList.remove("open");
+      if (appState.lastActiveTrigger && typeof appState.lastActiveTrigger.focus === "function") {
+        appState.lastActiveTrigger.focus();
+      }
+    }
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        closeDrawer();
+        closeResetModal();
+        closeAuthModal();
+      }
+    });
+
+    /* Insights Rendering */
+    function renderInsightsView() {
+      const catContainer = document.getElementById("insights-category-bars");
+      const grpContainer = document.getElementById("insights-group-bars");
+      if (!catContainer || !grpContainer) return;
+
+      const catCounts = {};
+      const grpCounts = {};
+      RAW_FEED_ITEMS.forEach(item => {
+        catCounts[item.category] = (catCounts[item.category] || 0) + 1;
+        const grp = item.topic || item.category;
+        grpCounts[grp] = (grpCounts[grp] || 0) + 1;
+      });
+
+      catContainer.replaceChildren();
+      Object.entries(catCounts).forEach(([cat, cnt]) => {
+        const row = document.createElement("div");
+        row.innerHTML = `
+          <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 2px;">
+            <span>${cat}</span>
+            <strong>${cnt} içerik (%${Math.round((cnt / RAW_FEED_ITEMS.length) * 100)})</strong>
+          </div>
+          <div class="meter-track"><div class="meter-fill tox" style="background: var(--color-brand-600); width: ${(cnt / RAW_FEED_ITEMS.length) * 100}%;"></div></div>
+        `;
+        catContainer.append(row);
+      });
+
+      grpContainer.replaceChildren();
+      Object.entries(grpCounts).forEach(([grp, cnt]) => {
+        const row = document.createElement("div");
+        row.innerHTML = `
+          <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 2px;">
+            <span>${grp}</span>
+            <strong>${cnt} içerik</strong>
+          </div>
+          <div class="meter-track"><div class="meter-fill neg" style="background: var(--color-accent); width: ${(cnt / RAW_FEED_ITEMS.length) * 100}%;"></div></div>
+        `;
+        grpContainer.append(row);
+      });
+
+      renderInsightsLogs();
+    }
+
+    function renderInsightsLogs() {
+      const logList = document.getElementById("insights-log-list");
+      if (!logList) return;
+      logList.replaceChildren();
+      appState.interactionLogs.slice(0, 8).forEach(log => {
+        const li = document.createElement("li");
+        li.textContent = `• ${log}`;
+        logList.append(li);
+      });
+    }
+
+    /* Compare View Rendering */
+    function renderCompareView() {
+      const colA = document.getElementById("compare-feed-a");
+      const colB = document.getElementById("compare-feed-b");
+      if (!colA || !colB) return;
+      colA.replaceChildren();
+      colB.replaceChildren();
+
+      const origItems = [...RAW_FEED_ITEMS].sort((a, b) => a.original_rank - b.original_rank);
+      const moodItems = [...RAW_FEED_ITEMS].sort((a, b) => {
+        const rA = appState.revertedItemIds.has(a.content_id) ? a.original_rank : a.new_rank;
+        const rB = appState.revertedItemIds.has(b.content_id) ? b.original_rank : b.new_rank;
+        return rA - rB;
+      });
+
+      origItems.forEach(c => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.style.padding = "10px";
+        card.innerHTML = `<div style="font-size: 0.78rem; font-weight: 700; color: var(--color-text-secondary);">#${c.original_rank} Orijinal Sıra</div><div style="font-weight: 700; font-size: 0.9rem;">${c.title}</div><p style="font-size: 0.8rem; color: var(--color-text-tertiary);">${c.text}</p>`;
+        colA.append(card);
+      });
+
+      moodItems.forEach(c => {
+        const isReverted = appState.revertedItemIds.has(c.content_id);
+        const card = document.createElement("div");
+        card.className = "card";
+        card.style.padding = "10px";
+        card.style.borderColor = "var(--color-brand-100)";
+        card.innerHTML = `<div style="font-size: 0.78rem; font-weight: 700; color: var(--color-brand-700);">#${isReverted ? c.original_rank : c.new_rank} MoodFeed</div><div style="font-weight: 700; font-size: 0.9rem;">${c.title}</div><p style="font-size: 0.8rem; color: var(--color-text-secondary);">${c.text}</p>`;
+        colB.append(card);
+      });
+    }
+
+    function toggleCompareLayout() {
+      const wrapper = document.getElementById("compare-grid-wrapper");
+      if (!wrapper) return;
+      appState.compareSingleColumn = !appState.compareSingleColumn;
+      wrapper.style.gridTemplateColumns = appState.compareSingleColumn ? "1fr" : "repeat(auto-fit, minmax(320px, 1fr))";
+      showToast(appState.compareSingleColumn ? "Tek Kolon Görünümü" : "Yan Yana Karşılaştırma");
+    }
+
+    /* Preferences */
+    function handlePrefProfileChange(profileKey) {
+      appState.activeProfile = profileKey;
+      showToast(`Sıralama profili güncellendi: ${profileKey}`);
+      addLog(`Sıralama profili değiştirildi: ${profileKey}`);
+      completePilotTask("changeProfile");
+      loadFeed();
+    }
+
+    function handlePrefScenarioChange(isHighNegativity) {
+      appState.activeScenario = isHighNegativity ? "high_negativity" : "default";
+      showToast(`Senaryo güncellendi: ${isHighNegativity ? 'Simüle Edilmiş Olumsuzluk Sinyali' : 'Varsayılan Demo'}`);
+      addLog(`Senaryo değiştirildi: ${appState.activeScenario}`);
+      completePilotTask("changeScenario");
+      loadFeed();
+    }
+
+    /* FAQ Accordion */
+    function toggleFaq(btn) {
+      const item = btn.closest(".faq-item");
+      const isOpen = item.classList.contains("open");
+      document.querySelectorAll(".faq-item").forEach(el => el.classList.remove("open"));
+      if (!isOpen) {
+        item.classList.add("open");
+        btn.querySelector("span:last-child").textContent = "−";
+      } else {
+        btn.querySelector("span:last-child").textContent = "+";
+      }
+    }
+
+    /* Pilot Tasks & Evaluation */
+    function acceptPilotConsent() {
+      pilotSession.consentGiven = true;
+      pilotSession.sessionId = "pilot-" + Math.random().toString(36).slice(2, 9);
+      pilotSession.startTime = Date.now();
+      document.getElementById("pilot-tasks-widget").style.display = "block";
+      showToast("✓ Pilot değerlendirme oturumu başlatıldı.");
+      addLog(`Pilot oturumu başlatıldı: ${pilotSession.sessionId}`);
+      navigateTo("feed");
+      updatePilotTasksWidget();
+    }
+
+    function completePilotTask(taskKey) {
+      if (!pilotSession.consentGiven) return;
+      if (!pilotSession.tasks[taskKey]) {
+        pilotSession.tasks[taskKey] = true;
+        const m = pilotSession.taskMetrics[taskKey];
+        if (m) {
+          m.status = "completed";
+          m.completedAt = Date.now();
+          m.durationMs = Math.max(1200, m.completedAt - (pilotSession.startTime || Date.now()));
+        }
+        updatePilotTasksWidget();
+        showToast(`✓ Görev Tamamlandı: ${taskKey}`);
+      }
+    }
+
+    function updatePilotTasksWidget() {
+      const doneCount = Object.values(pilotSession.tasks).filter(Boolean).length;
+      document.getElementById("pilot-tasks-counter").textContent = `(${doneCount}/6 Tamamlandı)`;
+      renderPilotResultsTable();
+    }
+
+    function handlePilotSurveySubmit(e) {
+      e.preventDefault();
+      const form = e.target;
+      pilotSession.surveyRatings = {
+        understandability: Number(form.q1.value),
+        userControl: Number(form.q2.value)
+      };
+      pilotSession.surveyOpen = {
+        notes: document.getElementById("survey-open-text").value.trim()
+      };
+      pilotSession.surveyCompleted = true;
+      pilotSession.endTime = Date.now();
+      completePilotTask("fillSurvey");
+      showToast("✓ Pilot anketi başarıyla kaydedildi.");
+      navigateTo("pilot-results");
+    }
+
+    function renderPilotResultsTable() {
+      const tbody = document.getElementById("task-quality-tbody");
+      if (!tbody) return;
+      tbody.replaceChildren();
+
+      Object.entries(pilotSession.taskMetrics).forEach(([k, m]) => {
+        const tr = document.createElement("tr");
+        const isDone = pilotSession.tasks[k];
+        tr.innerHTML = `
+          <td><strong>${m.name}</strong></td>
+          <td><span class="badge ${isDone ? 'badge-positive' : 'badge-rank'}">${isDone ? 'Tamamlandı' : 'Bekliyor'}</span></td>
+          <td>${(m.durationMs / 1000).toFixed(1)} sn</td>
+          <td>${m.errorCount}</td>
+          <td>${m.retryCount}</td>
+        `;
+        tbody.append(tr);
+      });
+    }
+
+    function sanitizeCSVCell(val) {
+      if (val === null || val === undefined) return '""';
+      let str = String(val);
+      if (/^[=+\-@\t\r]/.test(str)) {
+        str = "'" + str;
+      }
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+
+    function exportPilotJSON() {
+      if (!pilotSession.surveyCompleted) {
+        showToast("Dışa aktarma için pilot anketini tamamlayın.");
+        return;
+      }
+      const data = {
+        report_type: "exploratory_prototype_feedback",
+        session_id: pilotSession.sessionId,
+        duration_seconds: Math.round(((pilotSession.endTime || Date.now()) - (pilotSession.startTime || Date.now())) / 1000),
+        tasks_completed: pilotSession.tasks,
+        task_quality_metrics: pilotSession.taskMetrics,
+        survey_ratings: pilotSession.surveyRatings,
+        survey_open: pilotSession.surveyOpen,
+        reverted_count: appState.revertedItemIds.size,
+        saved_count: appState.savedItemIds.size,
+        disclaimer: "Bu rapor sentetik prototip oturumu verisidir; klinik değerlendirme değildir."
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `moodfeed-session-${pilotSession.sessionId}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast("✓ JSON raporu indirildi.");
+    }
+
+    function exportPilotCSV() {
+      if (!pilotSession.surveyCompleted) {
+        showToast("Dışa aktarma için pilot anketini tamamlayın.");
+        return;
+      }
+      let csv = "Gorev,Durum,Sure_sn,Hata,Tekrar\n";
+      Object.entries(pilotSession.taskMetrics).forEach(([k, m]) => {
+        csv += `${sanitizeCSVCell(m.name)},${sanitizeCSVCell(pilotSession.tasks[k] ? "Tamamlandi" : "Bekliyor")},${(m.durationMs/1000).toFixed(1)},${m.errorCount},${m.retryCount}\n`;
+      });
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `moodfeed-tasks-${pilotSession.sessionId}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast("✓ CSV raporu indirildi.");
+    }
+
+    /* Reset Demo Modal */
+    function openResetModal() {
+      document.getElementById("reset-confirm-modal").classList.add("open");
+    }
+    function closeResetModal() {
+      document.getElementById("reset-confirm-modal").classList.remove("open");
+    }
+    function confirmResetDemo() {
+      appState.savedItemIds.clear();
+      appState.revertedItemIds.clear();
+      appState.mutedSources.clear();
+      appState.activeProfile = "balanced";
+      appState.activeScenario = "default";
+      appState.moodfeedEnabled = true;
+      appState.feedFilter = "all";
+      appState.searchQuery = "";
+      appState.sortBy = "recommended";
+      document.getElementById("toggle").checked = true;
+      document.getElementById("toggle-label-text").textContent = "MoodFeed Açık";
+      closeResetModal();
+      showToast("✓ Demo durumu ve RAM belleği sıfırlandı.");
+      addLog("Demo durumu sıfırlandı.");
+      loadFeed();
+    }
+
+    /* Auth Modal & API Mock Adapter */
+    function openAuthModal() {
+      document.getElementById("auth-boundary-modal").classList.add("open");
+    }
+    function closeAuthModal() {
+      document.getElementById("auth-boundary-modal").classList.remove("open");
+    }
+    function simulateAuthLogin() {
+      const email = document.getElementById("mock-auth-email").value.trim() || "demo.kullanici@moodfeed.app";
+      document.getElementById("auth-status-btn").textContent = `👤 ${email.split('@')[0]} (RAM)`;
+      closeAuthModal();
+      showToast(`✓ Giriş simüle edildi: ${email} (Mock Adapter)`);
+      addLog(`Kullanıcı oturumu simüle edildi: ${email}`);
+    }
+
+    window.MoodFeedApiAdapter = {
+      isMockMode: true,
+      baseUrl: "/v1",
+      async login(email, password) {
+        return { user: { id: "u-mock-01", email, displayName: email.split("@")[0], role: "user" }, token: "mock.jwt.token" };
+      },
+      async getPreferences() {
+        return {
+          profilePreset: appState.activeProfile,
+          lowIntensityMode: appState.activeProfile === "calmer",
+          activeFeedMode: appState.moodfeedEnabled ? "moodfeed" : "original"
+        };
+      },
+      async updatePreferences(delta) {
+        if (delta.profilePreset) appState.activeProfile = delta.profilePreset;
+        renderMainFeed();
+        return { success: true, updated: delta };
+      },
+      async fetchFeed(params = {}) {
+        return { items: getFilteredFeedItems(), totalCount: RAW_FEED_ITEMS.length };
+      },
+      async submitFeedback(contentId, action) {
+        addLog(`Feedback iletildi: ${contentId} -> ${action}`);
+        return { success: true, recordedAt: new Date().toISOString() };
+      },
+      async exportData(format = "json") {
+        if (format === "json") exportPilotJSON();
+        else exportPilotCSV();
+        return { success: true };
+      }
+    };
+
+    /* Guided Tour */
+    const TOUR_STEPS = [
+      { tag: "Adım 1/4", title: "1. Akış Kontrolünü Seç", desc: "Sol menüden veya Tercihler sayfasından Dengeli, Sakin veya Kullanıcı Kontrolü profilini seçin." },
+      { tag: "Adım 2/4", title: "2. Sentetik Senaryoyu Aç", desc: "Jüri demosu için simüle edilmiş yüksek olumsuzluk senaryosunu açarak dengeleyici içeriklerin öne çıkışını gözlemleyin." },
+      { tag: "Adım 3/4", title: "3. Kararı İncele", desc: "Herhangi bir kartta 'Neden Burada?' butonuna tıklayarak matematiksel formülü ve karar izini inceleyin." },
+      { tag: "Adım 4/4", title: "4. Öneriyi Geri Al", desc: "'Sıralamayı Geri Al' butonuna basarak içeriği orijinal sırasına döndürün (içerikler asla silinmez)." }
+    ];
+
+    function startTour() {
+      navigateTo("feed");
+      appState.tourStep = 1;
+      document.getElementById("tour-banner").style.display = "flex";
+      renderTourStep();
+      showToast("Demo rehberi başlatıldı.");
+    }
+    function closeTour() {
+      document.getElementById("tour-banner").style.display = "none";
+    }
+    function nextTourStep() {
+      if (appState.tourStep < TOUR_STEPS.length) {
+        appState.tourStep++;
+        renderTourStep();
+      } else {
+        closeTour();
+        showToast("Demo turu tamamlandı.");
+      }
+    }
+    function prevTourStep() {
+      if (appState.tourStep > 1) {
+        appState.tourStep--;
+        renderTourStep();
+      }
+    }
+    function renderTourStep() {
+      const step = TOUR_STEPS[appState.tourStep - 1];
+      document.getElementById("tour-step-tag").textContent = step.tag;
+      document.getElementById("tour-step-title").textContent = step.title;
+      document.getElementById("tour-step-desc").textContent = step.desc;
+    }
+
+    /* Backend Sync */
+    async function loadFeed() {
+      try {
+        const response = await fetch(`/feed?profile=${encodeURIComponent(appState.activeProfile)}&scenario=${encodeURIComponent(appState.activeScenario)}`);
+        if (response.ok) {
+          const data = await response.json();
+          lastFeedData = data;
+          document.getElementById("stat-analyzed").textContent = RAW_FEED_ITEMS.length;
+          document.getElementById("stat-changed").textContent = data.comparison ? data.comparison.changed_count : 0;
+          document.getElementById("stat-profile").textContent = data.profile ? data.profile.profile_label : "Dengeli";
+          if (data.performance && typeof data.performance.elapsed_ms === "number") {
+            document.getElementById("stat-time").textContent = `${data.performance.elapsed_ms.toFixed(1)} ms`;
+          }
+          if (data.contents && data.contents.length > 0) {
+            data.contents.forEach(sc => {
+              const local = RAW_FEED_ITEMS.find(item => item.content_id === sc.content_id);
+              if (local) {
+                local.original_rank = sc.original_rank;
+                local.new_rank = sc.new_rank;
+                local.score_breakdown = sc.score_breakdown || local.score_breakdown;
+                local.toxicity_score = sc.toxicity_score;
+                local.negativity_score = sc.negativity_score;
+                local.reason = sc.reason || local.reason;
+              }
+            });
+          }
+        }
+      } catch (err) {}
+      renderMainFeed();
+      renderCompareView();
+    }
+
+    function handleRefreshFeed() {
+      showToast("Akış yenileniyor...");
+      loadFeed();
+    }
+
+    // Toggle switch listener
+    document.getElementById("toggle").addEventListener("change", async (e) => {
+      appState.moodfeedEnabled = e.target.checked;
+      document.getElementById("toggle-label-text").textContent = appState.moodfeedEnabled ? "MoodFeed Açık" : "MoodFeed Kapalı";
+      try {
+        await fetch("/settings/toggle", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ enabled: appState.moodfeedEnabled })
+        });
+      } catch(err){}
+      if (!appState.moodfeedEnabled) {
+        completePilotTask("toggleMoodFeed");
+      }
+      showToast(appState.moodfeedEnabled ? "MoodFeed sıralaması açıldı" : "MoodFeed kapatıldı (Orijinal sıra korunuyor)");
+      addLog(`MoodFeed durumu: ${appState.moodfeedEnabled ? 'Açık' : 'Kapalı'}`);
+      renderMainFeed();
+    });
+
+    // Compatibility functions
+    function selectScenarioCard(sKey) { handlePrefScenarioChange(sKey === "high_negativity"); }
+    function selectProfileCard(pKey) { handlePrefProfileChange(pKey); }
+
+    /* App Initialization */
+    window.addEventListener("DOMContentLoaded", () => {
+      renderMainFeed();
+      renderInsightsView();
+      onHashChange();
+      loadFeed();
+    });
   </script>
 </body>
 </html>

@@ -1,0 +1,78 @@
+content_id,text,true_label,predicted_label,scorer
+eval-rule-009,Zorluklara rağmen güzel sonuçlar elde ettik.,positive,neutral,rule_based
+eval-rule-014,Çözüm odaklı ve yapıcı bir geri bildirim aldım.,positive,neutral,rule_based
+eval-rule-018,Bugün öğrendiğim yeni bilgiler çok ufuk açıcıydı.,positive,neutral,rule_based
+eval-rule-021,Yeni özellikler kullanıcı deneyimini çok olumlu etkiledi.,positive,neutral,rule_based
+eval-rule-025,Çok verimli ve ilham verici bir etkinlik oldu.,positive,neutral,rule_based
+eval-rule-026,Pozitif enerjiniz tüm ekibe yansıdı.,positive,neutral,rule_based
+eval-rule-062,Gün boyu yaşanan aksaklıklar hepimizi çok üzdü.,negative,neutral,rule_based
+eval-rule-063,Müşteri hizmetlerinin ilgisizliği tam bir fiyasko.,negative,neutral,rule_based
+eval-rule-066,Sürekli hata vermesi yüzünden işlerimiz aksadı.,negative,neutral,rule_based
+eval-rule-067,Verilen sözlerin tutulmaması büyük hayal kırıklığı yarattı.,negative,neutral,rule_based
+eval-rule-068,Bu kadar başarısız bir organizasyon görmedim.,negative,neutral,rule_based
+eval-rule-069,Yapılan haksızlıklar karşısında çok sinirliyim.,negative,neutral,rule_based
+eval-rule-070,Uygulama sürekli çöküyor ve veriler kayboluyor.,negative,neutral,rule_based
+eval-rule-073,Destek taleplerine günlerdir hiçbir yanıt alamadık.,negative,positive,rule_based
+eval-rule-076,Yapılan açıklamalar yetersiz ve son derece kafa karıştırıcı.,negative,neutral,rule_based
+eval-rule-077,Karşılaştığımız kaba tutum bizi çok rahatsız etti.,negative,neutral,rule_based
+eval-rule-078,Teslimat haftalarca gecikti ve sipariş iptal edildi.,negative,neutral,rule_based
+eval-rule-079,Projede karşılaştığımız problemler giderek büyüyor.,negative,neutral,rule_based
+eval-rule-080,Bu ihmalkarlık yüzünden bütün emekler boşa gitti.,negative,neutral,rule_based
+eval-rule-081,Beklentilerimizin çok altında ve kalitesiz bir hizmet.,negative,neutral,rule_based
+eval-rule-082,Şikayetlerimize rağmen hiçbir iyileştirme yapılmadı.,negative,positive,rule_based
+eval-rule-083,Yaşanan kesintiler nedeniyle ciddi mağduriyet oluştu.,negative,neutral,rule_based
+eval-rule-084,Karşılaştığımız tavır güvenimizi tamamen sarstı.,negative,neutral,rule_based
+eval-rule-085,Sürekli problem çıkması tahammül sınırlarımızı aştı.,negative,neutral,rule_based
+eval-rule-086,Bu başarısız yönetim krizi daha da derinleştirdi.,negative,neutral,rule_based
+eval-rule-087,Yaşanan haksızlıklar çalışanları derinden yaraladı.,negative,neutral,rule_based
+eval-rule-089,Destek ekibinin duyarsızlığı bizi öfkelendirdi.,negative,positive,rule_based
+eval-rule-090,Bu eksiklikler projenin güvenilirliğini yerle bir etti.,negative,neutral,rule_based
+eval-bert-001,Bugün ekiple harika bir ilerleme kaydettik.,positive,neutral,berturk
+eval-bert-002,Projenin yeni sürümü çok güzel çalışıyor.,positive,neutral,berturk
+eval-bert-003,Arkadaşımın desteği beni çok mutlu etti.,positive,neutral,berturk
+eval-bert-004,Yardımlarınız için çok teşekkür ederim.,positive,neutral,berturk
+eval-bert-005,Geleceğe dair umut dolu bir toplantı yaptık.,positive,neutral,berturk
+eval-bert-007,Bu başarı hepimizin ortak emeğinin bir sonucudur.,positive,neutral,berturk
+eval-bert-009,Zorluklara rağmen güzel sonuçlar elde ettik.,positive,neutral,berturk
+eval-bert-010,Sevgi ve saygıyla yaklaştığınız için sağ olun.,positive,neutral,berturk
+eval-bert-011,Bu sabah güne oldukça iyi başladık.,positive,neutral,berturk
+eval-bert-012,Topluluk desteği ile süreç çok daha keyifli ilerliyor.,positive,neutral,berturk
+eval-bert-013,Başarı dolu bir döneme adım atıyoruz.,positive,neutral,berturk
+eval-bert-014,Çözüm odaklı ve yapıcı bir geri bildirim aldım.,positive,neutral,berturk
+eval-bert-016,Takım ruhu sayesinde harika bir atmosfer oluştu.,positive,neutral,berturk
+eval-bert-017,Destek mesajlarınız bize büyük moral verdi.,positive,neutral,berturk
+eval-bert-018,Bugün öğrendiğim yeni bilgiler çok ufuk açıcıydı.,positive,neutral,berturk
+eval-bert-019,Birlikte çalışmak her zaman mutluluk verici.,positive,neutral,berturk
+eval-bert-020,Planladığımız hedeflere adım adım ve başarıyla ulaşıyoruz.,positive,neutral,berturk
+eval-bert-021,Yeni özellikler kullanıcı deneyimini çok olumlu etkiledi.,positive,neutral,berturk
+eval-bert-022,Bu güzel haber günümüzü aydınlattı.,positive,neutral,berturk
+eval-bert-023,Emek veren herkese yürekten teşekkürler.,positive,neutral,berturk
+eval-bert-024,Harika bir iş birliği gerçekleştirdik.,positive,neutral,berturk
+eval-bert-025,Çok verimli ve ilham verici bir etkinlik oldu.,positive,neutral,berturk
+eval-bert-026,Pozitif enerjiniz tüm ekibe yansıdı.,positive,neutral,berturk
+eval-bert-029,Karşılaştığımız engelleri başarı ile aştık.,positive,neutral,berturk
+eval-bert-030,Yeni gün yeni umutlar ve güzellikler getiriyor.,positive,neutral,berturk
+eval-bert-062,Gün boyu yaşanan aksaklıklar hepimizi çok üzdü.,negative,neutral,berturk
+eval-bert-065,Yaşanan gecikmeler nedeniyle büyük stres altındayız.,negative,neutral,berturk
+eval-bert-066,Sürekli hata vermesi yüzünden işlerimiz aksadı.,negative,neutral,berturk
+eval-bert-067,Verilen sözlerin tutulmaması büyük hayal kırıklığı yarattı.,negative,neutral,berturk
+eval-bert-069,Yapılan haksızlıklar karşısında çok sinirliyim.,negative,neutral,berturk
+eval-bert-070,Uygulama sürekli çöküyor ve veriler kayboluyor.,negative,neutral,berturk
+eval-bert-071,Geleceğe dair ciddi bir endişe ve korku duyuyorum.,negative,neutral,berturk
+eval-bert-072,Hizmet kalitesi günden güne daha kötüye gidiyor.,negative,neutral,berturk
+eval-bert-073,Destek taleplerine günlerdir hiçbir yanıt alamadık.,negative,neutral,berturk
+eval-bert-074,Bu berbat durum karşısında çaresiz kaldık.,negative,neutral,berturk
+eval-bert-075,Sürecin bu kadar zor ve yıpratıcı olması üzücü.,negative,neutral,berturk
+eval-bert-076,Yapılan açıklamalar yetersiz ve son derece kafa karıştırıcı.,negative,neutral,berturk
+eval-bert-077,Karşılaştığımız kaba tutum bizi çok rahatsız etti.,negative,neutral,berturk
+eval-bert-078,Teslimat haftalarca gecikti ve sipariş iptal edildi.,negative,neutral,berturk
+eval-bert-079,Projede karşılaştığımız problemler giderek büyüyor.,negative,neutral,berturk
+eval-bert-080,Bu ihmalkarlık yüzünden bütün emekler boşa gitti.,negative,neutral,berturk
+eval-bert-082,Şikayetlerimize rağmen hiçbir iyileştirme yapılmadı.,negative,neutral,berturk
+eval-bert-083,Yaşanan kesintiler nedeniyle ciddi mağduriyet oluştu.,negative,neutral,berturk
+eval-bert-084,Karşılaştığımız tavır güvenimizi tamamen sarstı.,negative,neutral,berturk
+eval-bert-085,Sürekli problem çıkması tahammül sınırlarımızı aştı.,negative,neutral,berturk
+eval-bert-086,Bu başarısız yönetim krizi daha da derinleştirdi.,negative,neutral,berturk
+eval-bert-087,Yaşanan haksızlıklar çalışanları derinden yaraladı.,negative,neutral,berturk
+eval-bert-089,Destek ekibinin duyarsızlığı bizi öfkelendirdi.,negative,neutral,berturk
+eval-bert-090,Bu eksiklikler projenin güvenilirliğini yerle bir etti.,negative,neutral,berturk

@@ -1,7 +1,7 @@
 import os
 from dataclasses import dataclass
 from typing import Protocol
-from .models import AnalysisResult, ContentInput, ScorerInfo, Sentiment
+from .models import AnalysisResult, ContentInput, ProfileMetadata, ProfileWeights, ScorerInfo, Sentiment
 
 def clamp(value: float) -> float:
     return round(max(0.0, min(1.0, value)), 3)
@@ -13,6 +13,36 @@ class ScoreConfig:
     negative_risk_penalty: float = 0.25
     diversity_bonus: float = 0.15
 
+PROFILE_CONFIGS: dict[str, tuple[ScoreConfig, ProfileMetadata]] = {
+    "balanced": (
+        ScoreConfig(toxicity_penalty=0.35, negative_risk_penalty=0.25, diversity_bonus=0.15),
+        ProfileMetadata(
+            profile="balanced",
+            profile_label="Dengeli",
+            weights=ProfileWeights(toxicity=0.35, negativity=0.25, diversity=0.15),
+            description="Standart duygu, toksisite ve risk dengesi.",
+        ),
+    ),
+    "calmer": (
+        ScoreConfig(toxicity_penalty=0.50, negative_risk_penalty=0.40, diversity_bonus=0.25),
+        ProfileMetadata(
+            profile="calmer",
+            profile_label="Daha Sakin Akış",
+            weights=ProfileWeights(toxicity=0.50, negativity=0.40, diversity=0.25),
+            description="Toksisite ve olumsuzluk sinyallerine karşı daha hassas filtreleme.",
+        ),
+    ),
+    "user_control": (
+        ScoreConfig(toxicity_penalty=0.15, negative_risk_penalty=0.10, diversity_bonus=0.05),
+        ProfileMetadata(
+            profile="user_control",
+            profile_label="Kullanıcı Kontrolü",
+            weights=ProfileWeights(toxicity=0.15, negativity=0.10, diversity=0.05),
+            description="Minimum algoritmik müdahale ile orijinal akışa en yakın sıralama.",
+        ),
+    ),
+}
+
 class ContentScorer(Protocol):
     """BERTurk gibi gelecekteki model sağlayıcıları için sözleşme."""
     def analyze(self, content: ContentInput) -> AnalysisResult: ...
@@ -23,14 +53,18 @@ class RuleBasedTurkishScorer:
     positive_words = frozenset({"harika", "güzel", "mutlu", "teşekkür", "destek", "umut", "başarı", "sevgi", "keyifli", "iyi"})
     negative_words = frozenset({"kötü", "üzgün", "nefret", "korku", "stres", "zor", "başarısız", "endişe", "sinir", "berbat"})
     toxic_words = frozenset({"aptal", "salak", "iğrenç", "defol", "rezil", "senden nefret", "öldür", "tehdit"})
+    toxic_context_words = frozenset({"saldırgan", "hakaret", "küfür", "zorbalık", "şiddet", "taciz"})
 
     def get_info(self) -> ScorerInfo:
         return ScorerInfo(
             name="rule_based",
-            label="Kural Tabanlı",
+            label="Kural Tabanlı (Varsayılan ve Kararlı)",
             model_name=None,
             fallback=False,
             fallback_reason=None,
+            mode="rule_based",
+            is_experimental=False,
+            loaded=True,
         )
 
     def analyze(self, content: ContentInput) -> AnalysisResult:
@@ -47,9 +81,16 @@ class RuleBasedTurkishScorer:
             label, sentiment_score = "neutral", 0.5
         toxicity = clamp(toxic_hits * 0.35)
         negativity = clamp((negative_hits / max(1, total_hits)) * 0.7 + toxicity * 0.3)
+        sentiment_desc = {"positive": "Olumlu duygu eğilimi algılandı.", "negative": "Olumsuz duygu eğilimi algılandı.", "neutral": "Belirgin bir duygu eğilimi algılanmadı."}[label]
+        if toxicity > 0:
+            toxic_desc = "Saldırgan ifade sinyalleri bulundu."
+        elif any(word in normalized for word in self.toxic_context_words):
+            toxic_desc = "Metin saldırgan içerikten söz ediyor; ancak doğrudan bir kişiye saldırı içermiyor."
+        else:
+            toxic_desc = "Saldırgan ifade sinyali bulunmadı."
         reasons = [
-            {"positive": "Olumlu duygu eğilimi algılandı.", "negative": "Olumsuz duygu eğilimi algılandı.", "neutral": "Belirgin bir duygu eğilimi algılanmadı."}[label],
-            "Saldırgan ifade sinyalleri bulundu." if toxicity else "Saldırgan ifade sinyali bulunmadı.",
+            f"[Kural Tabanlı Skorlama] {sentiment_desc}",
+            toxic_desc,
             "Bu sonuç kural tabanlı bir prototip tahminidir; klinik değerlendirme değildir.",
         ]
         return AnalysisResult(

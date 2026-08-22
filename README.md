@@ -128,20 +128,75 @@ Testler sağlık denetimini, JSON örnek akışını, kural tabanlı ve BERTurk 
 
 ## BERTurk Entegrasyonu, UI Durumu ve Fallback Davranışı
 
-- `ContentScorer` sözleşmesi üzerinden varsayılan kural tabanlı yönteme ek olarak hazır fine-tuned model (`Omar1010/bert-turkish-sentiment`) entegre edilmiştir.
+- `ContentScorer` sözleşmesi üzerinden varsayılan kural tabanlı yönteme ek olarak hazır fine-tuned model (`Omar1010/bert-turkish-sentiment`) **deneysel mod** olarak entegre edilmiştir.
+- **Varsayılan Karar Verici:** Sistem varsayılan olarak `RuleBasedTurkishScorer` kural tabanlı yöntemini ana karar verici olarak kullanır.
 - Web demo arayüzünde (`index.html`) ve API yanıtında (`/feed`, `/rerank`) aktif scorer durumu açıkça raporlanır:
-  - **Kural Tabanlı:** `⚡ Aktif analiz: Kural Tabanlı`
-  - **BERTurk Aktif:** `🤖 Aktif analiz: BERTurk (Model: Omar1010/bert-turkish-sentiment)`
+  - **Kural Tabanlı:** `⚡ Aktif analiz: Kural Tabanlı (Varsayılan ve Kararlı)`
+  - **Deneysel BERTurk:** `🧪 Aktif analiz: BERTurk (Deneysel Çıkarım - Omar1010/bert-turkish-sentiment)`
   - **Fallback (Yedek Mod):** `⚠️ Aktif analiz: Kural Tabanlı Fallback (BERTurk yüklenemedi; kural tabanlı analiz kullanılıyor)`
-- Bu entegrasyon bir inference sağlayıcısıdır; kendi veri setimiz üzerinde özel fine-tuning eğitimi veya metrik üretimi yapılmamıştır.
-- BERTurk bir toksisite modeli olmadığı için toksisite puanı kural tabanlı sözlük filtreleme yöntemiyle hesaplanır.
-- `transformers` veya `torch` kütüphanelerinin eksik olması, modelin indirilememesi ya da çıkarım hatası durumunda sistem 500 hatası üretmez; otomatik olarak `RuleBasedTurkishScorer` kural tabanlı analizine fallback yapar, API response'unda ve UI'da fallback durumunu açıkça belirtir.
-- Gerçek kullanıcı testi ve A/B testi henüz uygulanmamıştır.
+- Bu entegrasyon bir çıkarım (inference) sağlayıcısıdır; kendi veri setimiz üzerinde özel fine-tuning eğitimi yapılmamıştır.
+- BERTurk bir toksisite modeli olmadığı için toksisite puanı kural tabanlı sözlük filtreleme yöntemiyle hibrit hesaplanır.
+- `transformers` veya `torch` kütüphanelerinin eksik olması, modelin indirilememesi ya da çıkarım hatası durumunda sistem 500 hatası üretmez; otomatik olarak `RuleBasedTurkishScorer` analizine fallback yapar, API response'unda ve UI'da fallback durumunu açıkça belirtir.
+- Sıralama ve analiz gerekçelerinde kullanılan model kaynağı (`[Kural Tabanlı Skorlama]`, `[Deneysel BERTurk]`, `[Kural Tabanlı Fallback]`) şeffaf biçimde etiketlenir.
+
+## Prototip Değerlendirme Altyapısı (Benchmark)
+
+Kural tabanlı yaklaşım (`RuleBasedTurkishScorer`) ile hazır fine-tuned BERTurk modelinin (`BerturkTurkishScorer`) aynı küçük ve kontrollü sentetik test seti üzerinde karşılaştırılması için prototip değerlendirme altyapısı eklenmiştir.
+
+- **Sentetik Veri Seti:** `data/evaluation_sentiment.csv` (90 satır; 30 pozitif, 30 nötr, 30 negatif sentetik Türkçe cümle, kişisel veri içermez).
+- **Değerlendirme Scripti:** `scripts/evaluate_scorers.py`
+- **Çıktılar:** `artifacts/evaluation_metrics.json` ve `artifacts/evaluation_errors.csv`
+- **Ayrıntılı Dokümantasyon:** [docs/evaluation.md](docs/evaluation.md) ve [data/README.md](data/README.md)
+
+### Değerlendirme Bulguları (90 Sentetik Örnek)
+- **Kural Tabanlı (Rule-based):** Accuracy: `0.6889`, Macro F1: `0.6563`
+- **BERTurk (Deneysel):** Accuracy: `0.4556`, Macro F1: `0.3898`
+- **Mimari Karar:** BERTurk bu sentetik test setinde nötr sınıfına aşırı yönelme eğilimi gösterdiği için ana sıralama kararı kural tabanlı yöntemde tutulmuş, BERTurk yalnızca açıkça seçilen deneysel bir analiz modu olarak konumlandırılmıştır.
+
+### Değerlendirmeyi Çalıştırma
+```powershell
+python scripts/evaluate_scorers.py
+```
+
+### Değerlendirme Sınırlılıkları ve Şeffaflık
+- Değerlendirme veri seti kurgusal ve sentetiktir; gerçek bir sosyal medya benchmark'ı veya genel geçer model performans iddiası olarak sunulamaz.
+- Depo kapsamında herhangi bir model eğitimi veya fine-tuning yapılmamıştır; `Omar1010/bert-turkish-sentiment` hazır çıkarım modeli olarak kullanılır.
+- BERTurk modeli yüklenemediğinde veya bağımlılıklar eksik olduğunda sistem sahte metrik üretmez; BERTurk metrik alanı `null` bırakılır ve hata nedeni açıkça kaydedilir.
+
+## MoodFeed MVP Web Uygulaması Mimarisi (12 Ekran)
+
+Uygulama, bağımlılıksız (Vanilla HTML/CSS/JavaScript) olarak geliştirilmiş, tam responsive ve WCAG 2.2 erişilebilirlik standartlarına uygun modern bir SaaS arayüzüdür:
+
+1. **Karşılama Ekranı (Welcome / Hero):** Sistemin değer önerisi, 3 güven sütunu (şeffaflık, kullanıcı kontrolü, sıfır kalıcı depolama).
+2. **Başlangıç Rehberi (Onboarding):** 3 adımlı kılavuzlu akış (Algoritma Mantığı, Kontrol Mekanizması, Gizlilik Taahhüdü).
+3. **Ana Akış (Main Feed):** 10 zengin sentetik içerik kartı, anlık arama, 5 filtre sekmesi (Tümü, Kaydedilenler, Yeni, Düşük Yoğunluk, Açıklamalı), sıralama seçenekleri (Önerilen, Orijinal, Düşük Tekrar, Yüksek Açıklanabilirlik) ve kart aksiyonları (Kaydet, Paylaş, Detay, Kararı İncele, Geri Al, Sessize Al).
+4. **İçerik Detay Görünümü (`#content/<id>`):** Seçilen içeriğin derinlemesine sinyal analizi, duygu polaritesi, toksisite oranı ve doğrudan işlem butonları.
+5. **Açıklanabilirlik Çekmecesi (Explanation Drawer):** 4 sütunlu matematiksel formül dökümü ($S_{\text{orig}} - W_{\text{tox}} \cdot T - W_{\text{neg}} \cdot N \cdot R + W_{\text{div}} \cdot D \cdot R$), dikey karar izi ve klavye odak tuzağı (focus trap).
+6. **Öngörüler Paneli (Insights Dashboard):** RAM oturumunda işlenen içerik sayıları, kategori dağılım çubuk grafiği ve son etkileşim günlüğü.
+7. **Karşılaştırma Ekranı (A/B Compare):** Orijinal ham platform akışı (A) ile MoodFeed önerilen akışını (B) yan yana veya tek kolon görünümünde inceleme.
+8. **Akış Tercihleri (Preferences):** 3 sıralama profili (Dengeli, Daha Sakin, Kullanıcı Kontrolü), simüle edilmiş yüksek risk jüri senaryosu toggle'ı ve sessize alınan kaynak yönetimi.
+9. **Ayarlar ve Gizlilik (Settings & Privacy):** Sıfır kalıcı veri politikası, WCAG 2.2 uyumluluk bildirimi ve oturum sıfırlama (reset) onay modalı.
+10. **Nasıl Çalışır? / Yardım (Help & FAQ):** Erişilebilir akordeon formatında 6 temel soru-cevap ve etik sınırlar.
+11. **Pilot Değerlendirme Modu:** Onam ekranı, 6 adet gerçek UI eylemiyle tamamlanan görev kalitesi takibi (süre, hata, tekrar deneme), 6 soruluk 1–5 Likert anketi, sonuç raporu ve formula-injection korumalı istemci taraflı JSON/CSV dışa aktarma.
+12. **404 / Hata Ekranı:** Geçersiz route/hash durumlarında kullanıcıyı ana akışa yönlendiren durum ekranı.
+
+---
+
+## 90 Saniyelik Jüri Demo Senaryosu
+
+1. **00-15 sn (Giriş ve Onboarding):** `http://127.0.0.1:8000/#welcome` açılır. *"🚀 Başlangıç Rehberi"* ile 3 adımlı kılavuz hızlıca gezilir ve *"Akışa Geç"* tıklanır.
+2. **15-30 sn (Akış ve Karar İnceleme):** Ana akışta sıralaması değişen bir karta gelinir. *"🔍 Kararı İncele"* tıklanarak 4 sütunlu açıklama çekmecesinde matematiksel formül ve karar izi gösterilir.
+3. **30-45 sn (Kullanıcı Kontrolü ve Geri Alma):** Çekmeceden veya karttan *"↩️ Sıralamayı Geri Al"* tıklanır; içeriğin anında orijinal platform sırasına döndüğü ve hiçbir içeriğin silinmediği (`Silinen İçerik: 0`) vurgulanır.
+4. **45-60 sn (Tercihler ve Jüri Senaryosu):** *"🎛️ Akış Tercihleri"* sekmesinde *"⚡ Simüle Edilmiş Yüksek Olumsuzluk Senaryosu"* açılır. Yüksek risk ortamında pozitif dengeleyici içeriğin nasıl öne çıktığı gözlemlenir.
+5. **60-75 sn (A/B Karşılaştırma):** *"⚖️ Karşılaştır (A/B)"* sekmesine geçilir; Orijinal Platform Sırası (A) ile MoodFeed Önerilen Sırası (B) yan yana kıyaslanır.
+6. **75-90 sn (Etik Pilot Değerlendirme & Export):** *"🧪 Pilot Değerlendirme"* başlatılır, onam verilir, görev kalitesi metrikleri (tamamlanma süresi, hata sayısı) ve 1-5 Likert anketi tamamlanıp *"JSON'u İndir"* veya *"CSV'yi İndir"* ile oturum verisi anında dışa aktarılır.
+
+---
 
 ## Prototipin raporla ilişkisi
 
-Bu MVP; üç katmanlı karar yaklaşımını (duygu/tone ve toksisite, spiral riski, açıklanabilir sıralama), kullanıcı kontrolünü, veri minimizasyonunu, aktif model şeffaflığını ve test sürecini somut olarak gösterir. Teknik raporda uygulanmış özellikler yalnızca bu depoda doğrulanabilen bu kapsamla ifade edilmelidir. Ayrıntılar için [mimari belgesine](docs/architecture.md) bakın.
+Bu MVP; üç katmanlı karar yaklaşımını (duygu/tone ve toksisite, spiral riski, açıklanabilir sıralama), kullanıcı kontrolünü, veri minimizasyonunu, aktif model şeffaflığını, ölçülebilir değerlendirme altyapısını ve test sürecini somut olarak gösterir. Teknik raporda uygulanmış özellikler yalnızca bu depoda doğrulanabilen bu kapsamla ifade edilmelidir. Ayrıntılar için [mimari belgesine](docs/architecture.md) ve [değerlendirme belgesine](docs/evaluation.md) bakın.
 
 ## GitHub dalı ve doğrulama tabanı
 
-Çalışma dalı: `add-scorer-status-ui` (önceki dal: `add-berturk-inference`, temel dal: `moodfeed-final-prep`). Son doğrulanan temel commit `937209e8cd18bcb210517bffa9dfc9f03327ac19` olup teknik rapor durum ayrımı [report-status.md](docs/report-status.md) dosyasında tutulur.
+Çalışma dalı: `add-evaluation-benchmark` (önceki dallar: `add-scorer-status-ui`, `add-berturk-inference`, temel dal: `moodfeed-final-prep`). Son doğrulanan temel commit `937209e8cd18bcb210517bffa9dfc9f03327ac19` olup teknik rapor durum ayrımı [report-status.md](docs/report-status.md) dosyasında tutulur.

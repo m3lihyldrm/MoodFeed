@@ -105,7 +105,7 @@ def test_berturk_fallback_when_import_fails() -> None:
 
     assert result.content_id == "t-3"
     assert result.sentiment.label == "positive"
-    assert any("[Fallback]" in r for r in result.reason)
+    assert any("Fallback" in r for r in result.reason)
 
 
 def test_berturk_fallback_when_model_load_fails() -> None:
@@ -118,7 +118,7 @@ def test_berturk_fallback_when_model_load_fails() -> None:
 
     assert result.content_id == "t-4"
     assert result.sentiment.label == "negative"
-    assert any("[Fallback]" in r for r in result.reason)
+    assert any("Fallback" in r for r in result.reason)
 
 
 def test_berturk_fallback_when_inference_raises_exception() -> None:
@@ -130,7 +130,7 @@ def test_berturk_fallback_when_inference_raises_exception() -> None:
 
     assert result.content_id == "t-5"
     assert result.sentiment.label == "positive"
-    assert any("[Fallback]" in r for r in result.reason)
+    assert any("Fallback" in r for r in result.reason)
 
 
 def test_fallback_through_api_returns_200_no_500() -> None:
@@ -144,7 +144,7 @@ def test_fallback_through_api_returns_200_no_500() -> None:
         body = response.json()
         assert body["content_id"] == "api-1"
         assert body["sentiment"]["label"] == "positive"
-        assert any("[Fallback]" in r for r in body["reason"])
+        assert any("Fallback" in r for r in body["reason"])
 
 
 def test_bounded_scores_for_all_sentiment_labels() -> None:
@@ -165,7 +165,10 @@ def test_scorer_info_rule_based() -> None:
     scorer = RuleBasedTurkishScorer()
     info = scorer.get_info()
     assert info.name == "rule_based"
-    assert info.label == "Kural Tabanlı"
+    assert info.label == "Kural Tabanlı (Varsayılan ve Kararlı)"
+    assert info.mode == "rule_based"
+    assert info.is_experimental is False
+    assert info.loaded is True
     assert info.model_name is None
     assert info.fallback is False
     assert info.fallback_reason is None
@@ -176,7 +179,10 @@ def test_scorer_info_berturk_active() -> None:
     scorer = BerturkTurkishScorer(pipeline_instance=mock_pipeline)
     info = scorer.get_info()
     assert info.name == "berturk"
-    assert info.label == "BERTurk"
+    assert info.label == "BERTurk (Deneysel Çıkarım)"
+    assert info.mode == "berturk"
+    assert info.is_experimental is True
+    assert info.loaded is True
     assert info.model_name == DEFAULT_BERTURK_MODEL
     assert info.fallback is False
     assert info.fallback_reason is None
@@ -189,6 +195,9 @@ def test_scorer_info_berturk_fallback_on_load_error() -> None:
         info = scorer.get_info()
         assert info.name == "rule_based_fallback"
         assert info.label == "Kural Tabanlı Fallback"
+        assert info.mode == "rule_based_fallback"
+        assert info.is_experimental is False
+        assert info.loaded is False
         assert info.fallback is True
         assert info.fallback_reason == "Transformers kütüphanesi eksik"
 
@@ -199,6 +208,9 @@ def test_scorer_info_berturk_fallback_on_inference_error() -> None:
     result = scorer.analyze(ContentInput(id="err-1", text="Test metni"))
     assert result.scorer is not None
     assert result.scorer.name == "rule_based_fallback"
+    assert result.scorer.mode == "rule_based_fallback"
+    assert result.scorer.is_experimental is False
+    assert result.scorer.loaded is False
     assert result.scorer.fallback is True
     assert "Inference hatası" in (result.scorer.fallback_reason or "")
 
@@ -217,5 +229,7 @@ def test_api_feed_returns_berturk_scorer_info() -> None:
         assert response.status_code == 200
         body = response.json()
         assert body["scorer"]["name"] == "berturk"
-        assert body["scorer"]["label"] == "BERTurk"
+        assert body["scorer"]["label"] == "BERTurk (Deneysel Çıkarım)"
+        assert body["scorer"]["is_experimental"] is True
         assert body["scorer"]["fallback"] is False
+        assert "transparency_notice" in body

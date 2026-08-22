@@ -1,6 +1,51 @@
+version: "3.8"
+
 services:
-  api:
-    build: .
-    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: moodfeed-app
     ports:
       - "8000:8000"
+    environment:
+      - APP_ENV=development
+      - DATABASE_URL=postgresql://moodfeed_user:moodfeed_secret@db:5432/moodfeed_db
+      - REDIS_URL=redis://redis:6379/0
+      - LOG_LEVEL=INFO
+      - LOG_FORMAT=json
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    container_name: moodfeed-db
+    environment:
+      POSTGRES_USER: moodfeed_user
+      POSTGRES_PASSWORD: moodfeed_secret
+      POSTGRES_DB: moodfeed_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U moodfeed_user -d moodfeed_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: moodfeed-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
