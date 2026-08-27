@@ -1,0 +1,104 @@
+{
+  "evaluation_timestamp": "2026-08-21T15:00:30.564519+00:00",
+  "dataset_type": "synthetic",
+  "dataset_warning": "Bu veri seti kurgusal ve sentetik bir test setidir; gerçek sosyal medya benchmark'ı veya genel geçer model performans iddiası değildir.",
+  "sample_count": 90,
+  "class_distribution": {
+    "negative": 30,
+    "neutral": 30,
+    "positive": 30
+  },
+  "metrics": {
+    "rule_based": {
+      "accuracy": 0.6889,
+      "macro_precision": 0.8114,
+      "macro_recall": 0.6889,
+      "macro_f1": 0.6563,
+      "confusion_matrix": [
+        [
+          8,
+          19,
+          3
+        ],
+        [
+          0,
+          30,
+          0
+        ],
+        [
+          0,
+          6,
+          24
+        ]
+      ],
+      "class_metrics": {
+        "negative": {
+          "precision": 1.0,
+          "recall": 0.2667,
+          "f1": 0.4211,
+          "support": 30
+        },
+        "neutral": {
+          "precision": 0.5455,
+          "recall": 1.0,
+          "f1": 0.7059,
+          "support": 30
+        },
+        "positive": {
+          "precision": 0.8889,
+          "recall": 0.8,
+          "f1": 0.8421,
+          "support": 30
+        }
+      }
+    },
+    "berturk": {
+      "accuracy": 0.4556,
+      "macro_precision": 0.7932,
+      "macro_recall": 0.4556,
+      "macro_f1": 0.3898,
+      "confusion_matrix": [
+        [
+          6,
+          24,
+          0
+        ],
+        [
+          0,
+          30,
+          0
+        ],
+        [
+          0,
+          25,
+          5
+        ]
+      ],
+      "class_metrics": {
+        "negative": {
+          "precision": 1.0,
+          "recall": 0.2,
+          "f1": 0.3333,
+          "support": 30
+        },
+        "neutral": {
+          "precision": 0.3797,
+          "recall": 1.0,
+          "f1": 0.5505,
+          "support": 30
+        },
+        "positive": {
+          "precision": 1.0,
+          "recall": 0.1667,
+          "f1": 0.2857,
+          "support": 30
+        }
+      }
+    }
+  },
+  "errors_file": "artifacts/evaluation_errors.csv",
+  "berturk_status": {
+    "loaded": true,
+    "reason": null
+  }
+}

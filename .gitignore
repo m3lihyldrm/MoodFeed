@@ -1,0 +1,36 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Caches & Test artifacts
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Environments
+.venv/
+.venv*/
+venv/
+ENV/
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Database dumps & exports
+*.dump
+*.sqlite
+*.db
+backups/
+exports/
+
+# Logs & Temporary files
+*.log
+.DS_Store
+Thumbs.db
