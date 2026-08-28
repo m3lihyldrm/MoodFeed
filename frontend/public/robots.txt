@@ -1,0 +1,3 @@
+﻿User-agent: *
+Allow: /
+Sitemap: https://moodfeed.vercel.app/sitemap.xml

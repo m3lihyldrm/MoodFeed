@@ -24,6 +24,9 @@ from backend.api.auth import router as auth_router
 from backend.api.posts import router as posts_router
 from backend.api.activity import router as activity_router
 from backend.api.interactions import router as interactions_router
+from backend.api.admin import router as admin_router
+from backend.api.webhooks import router as webhooks_router
+from backend.api.analytics import router as analytics_router
 from backend.config import settings as app_settings
 from backend.db.database import init_db
 from backend.models import (
@@ -57,6 +60,7 @@ app = FastAPI(
     version=app_settings.app_version,
     description="Türkçe odaklı, açıklanabilir içerik akışı prototipi.",
 )
+
 
 @app.on_event("startup")
 def startup_event():
@@ -101,6 +105,9 @@ app.include_router(auth_router)
 app.include_router(posts_router)
 app.include_router(activity_router)
 app.include_router(interactions_router)
+app.include_router(admin_router)
+app.include_router(webhooks_router)
+app.include_router(analytics_router)
 app.include_router(v1_router)
 app.include_router(explainer_router)
 app.add_middleware(
