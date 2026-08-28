@@ -152,4 +152,23 @@ UserActionCreate.model_rebuild()
 UserActionRead.model_rebuild()
 UserActionResponse.model_rebuild()
 
+# Re-export SQLAlchemy database entity models for unified imports
+try:
+    from backend.database.models import (
+        Base,
+        User,
+        Post,
+        Like,
+        Save,
+        Comment,
+        Follow,
+        Notification,
+        UserPreferences,
+        UserInteraction,
+        InteractionLog,
+    )
+except ImportError:
+    pass
+
+
 

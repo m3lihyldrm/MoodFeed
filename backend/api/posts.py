@@ -755,10 +755,12 @@ def search_posts_and_content(
         query = query.filter(Post.category == category)
 
     results = query.order_by(Post.created_at.desc()).limit(limit).all()
+    posts_list = [r.to_dict() for r in results]
 
     return {
         "query": q,
         "mood_filter": mood,
         "count": len(results),
-        "results": [r.to_dict() for r in results],
+        "results": posts_list,
+        "posts": posts_list,
     }

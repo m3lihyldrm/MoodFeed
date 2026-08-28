@@ -60,7 +60,11 @@ class MoodDetector:
     """Mood & Emotion Detector with Hugging Face API & Turkish Lexicon Fallback."""
 
     def __init__(self) -> None:
-        self.hf_api_token = os.getenv("HUGGINGFACE_API_TOKEN") or os.getenv("HF_TOKEN")
+        self.hf_api_token = (
+            os.getenv("HUGGINGFACE_API_KEY")
+            or os.getenv("HUGGINGFACE_API_TOKEN")
+            or os.getenv("HF_TOKEN")
+        )
         self.model_name = os.getenv("HF_MODEL_NAME", "cardiffnlp/twitter-xlm-roberta-base-sentiment")
         self.api_url = f"https://api-inference.huggingface.co/models/{self.model_name}"
         self.client = httpx.Client(timeout=4.0)
@@ -138,11 +142,16 @@ class MoodDetector:
 
     def _detect_via_hf(self, text: str) -> dict[str, Any] | None:
         """Calls Hugging Face Inference API if token is configured."""
-        if not self.hf_api_token:
+        token = (
+            os.getenv("HUGGINGFACE_API_KEY")
+            or os.getenv("HUGGINGFACE_API_TOKEN")
+            or os.getenv("HF_TOKEN")
+        )
+        if not token:
             return None
 
         try:
-            headers = {"Authorization": f"Bearer {self.hf_api_token}"}
+            headers = {"Authorization": f"Bearer {token}"}
             payload = {"inputs": text[:500]}
             resp = self.client.post(self.api_url, json=payload, headers=headers)
             if resp.status_code == 200:
@@ -200,6 +209,11 @@ class MoodDetector:
         # 2. Use Turkish Rule-Based Lexicon Fallback
         return self._detect_via_lexicon(text)
 
+    async def detect_mood_async(self, text: str) -> dict[str, Any]:
+        """Async variant of detect_mood."""
+        return self.detect_mood(text)
+
 
 # Global singleton instance
 mood_detector = MoodDetector()
+
