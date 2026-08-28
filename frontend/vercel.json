@@ -1,6 +1,12 @@
 {
   "cleanUrls": true,
   "rewrites": [
+    { "source": "/v1/(.*)", "destination": "https://moodfeed-api.up.railway.app/v1/$1" },
+    { "source": "/feed", "destination": "https://moodfeed-api.up.railway.app/feed" },
+    { "source": "/health", "destination": "https://moodfeed-api.up.railway.app/health" },
+    { "source": "/analyze", "destination": "https://moodfeed-api.up.railway.app/analyze" },
+    { "source": "/rerank", "destination": "https://moodfeed-api.up.railway.app/rerank" },
+    { "source": "/settings/(.*)", "destination": "https://moodfeed-api.up.railway.app/settings/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
