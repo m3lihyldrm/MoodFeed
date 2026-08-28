@@ -626,6 +626,109 @@
       background: rgba(239, 68, 68, 0.1);
       color: var(--color-danger);
     }
+    .badge-mood-happy { background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25); }
+    .badge-mood-sad { background: rgba(59, 130, 246, 0.12); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.25); }
+    .badge-mood-angry { background: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.25); }
+    .badge-mood-anxious { background: rgba(245, 158, 11, 0.12); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.25); }
+    .badge-mood-neutral { background: var(--color-surface-raised); color: var(--color-text-muted); border: 1px solid var(--color-border); }
+
+    .badge-verified {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 15px;
+      height: 15px;
+      border-radius: var(--radius-full);
+      background: #3b82f6;
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 800;
+      margin-left: 2px;
+    }
+
+    .mood-pill {
+      padding: 5px 12px;
+      border-radius: var(--radius-full);
+      font-size: 0.78rem;
+      font-weight: 600;
+      background: var(--color-surface-subtle);
+      border: 1px solid var(--color-border);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all var(--duration-fast) var(--ease-smooth);
+    }
+    .mood-pill:hover {
+      background: var(--color-surface-hover);
+      color: var(--color-text-primary);
+    }
+    .mood-pill.active {
+      background: var(--color-brand);
+      color: #fff;
+      border-color: var(--color-brand);
+    }
+
+    .btn-follow {
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+      font-size: 0.72rem;
+      font-weight: 700;
+      background: var(--color-brand-subtle);
+      color: var(--color-brand);
+      border: 1px solid var(--color-brand);
+      cursor: pointer;
+      transition: all var(--duration-fast) var(--ease-smooth);
+    }
+    .btn-follow:hover {
+      background: var(--color-brand);
+      color: #fff;
+    }
+    .btn-follow.following {
+      background: var(--color-surface-subtle);
+      color: var(--color-text-muted);
+      border-color: var(--color-border);
+    }
+
+    .comments-section {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--color-border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .comment-item {
+      background: var(--color-surface-subtle);
+      border-radius: var(--radius-md);
+      padding: 8px 12px;
+      font-size: 0.82rem;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .comment-reply-item {
+      margin-left: 20px;
+      background: var(--color-surface-raised);
+      border-left: 2px solid var(--color-brand);
+      border-radius: var(--radius-sm);
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      margin-top: 4px;
+    }
+    .comment-input-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .comment-input-row input {
+      flex: 1;
+      padding: 6px 10px;
+      font-size: 0.82rem;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      color: var(--color-text-primary);
+    }
 
     .card-body {
       display: flex;
@@ -1201,6 +1304,17 @@
               <option value="toxicity_low">Düşük Toksisite</option>
             </select>
           </div>
+        </div>
+
+        <!-- Mood Detection AI Filter Bar -->
+        <div class="mood-filter-bar" style="display: flex; gap: 6px; overflow-x: auto; padding: 4px 2px 10px 2px; align-items: center;">
+          <span style="font-size: 0.78rem; font-weight: 700; color: var(--color-text-muted); white-space: nowrap;">Mood:</span>
+          <button class="mood-pill active" id="mood-all" onclick="handleMoodFilter('all')">🌐 Tümü</button>
+          <button class="mood-pill" id="mood-happy" onclick="handleMoodFilter('happy')">😊 Mutlu</button>
+          <button class="mood-pill" id="mood-sad" onclick="handleMoodFilter('sad')">😢 Üzgün</button>
+          <button class="mood-pill" id="mood-angry" onclick="handleMoodFilter('angry')">😠 Öfkeli</button>
+          <button class="mood-pill" id="mood-anxious" onclick="handleMoodFilter('anxious')">😰 Endişeli</button>
+          <button class="mood-pill" id="mood-neutral" onclick="handleMoodFilter('neutral')">😐 Nötr</button>
         </div>
 
         <!-- Social Posts Stream -->
@@ -1852,7 +1966,10 @@
       },
       token: null,
       customPosts: [],
-      notifications: []
+      notifications: [],
+      moodFilter: null,
+      followingUserIds: new Set(),
+      commentsMap: {}
     };
 
     const pilotSession = {
@@ -2005,6 +2122,12 @@
         const q = appState.searchQuery.toLowerCase();
         list = list.filter(item => (item.title || "").toLowerCase().includes(q) || (item.text || item.content || "").toLowerCase().includes(q));
       }
+      if (appState.moodFilter && appState.moodFilter !== "all") {
+        list = list.filter(item => {
+          const m = (item.mood_label || (item.sentiment?.label === "positive" ? "happy" : item.sentiment?.label === "negative" ? "sad" : "neutral")).toLowerCase();
+          return m === appState.moodFilter;
+        });
+      }
       if (appState.feedFilter === "saved") {
         list = list.filter(item => appState.savedItemIds.has(item.content_id || item.id));
       } else if (appState.feedFilter === "low_density") {
@@ -2035,6 +2158,18 @@
       const items = getFilteredFeedItems();
       container.replaceChildren();
 
+      if (items.length === 0) {
+        container.innerHTML = `
+          <div class="card" style="text-align: center; padding: 40px 20px; color: var(--color-text-muted);">
+            <div style="font-size: 2rem; margin-bottom: 8px;">🔍</div>
+            <h3 style="font-size: 1.05rem; color: var(--color-text-primary); margin-bottom: 4px;">İçerik Bulunamadı</h3>
+            <p style="font-size: 0.84rem;">Seçilen arama veya mood filtresine uygun içerik bulunamadı. Filtreleri sıfırlayabilirsiniz.</p>
+            <button class="btn btn-secondary btn-sm" onclick="handleMoodFilter('all'); clearFeedSearch();" style="margin-top: 10px;">Filtreleri Temizle</button>
+          </div>
+        `;
+        return;
+      }
+
       items.forEach(item => {
         const cid = item.content_id || item.id;
         const isLiked = appState.likedItemIds.has(cid);
@@ -2049,12 +2184,24 @@
 
         const negScore = typeof item.negativity_score === 'number' ? Math.round(item.negativity_score * 100) : 0;
         const toxScore = typeof item.toxicity_score === 'number' ? Math.round(item.toxicity_score * 100) : 0;
-        const sentLabel = item.sentiment ? (item.sentiment.label === 'positive' ? 'Olumlu' : item.sentiment.label === 'negative' ? 'Olumsuz' : 'Nötr') : 'Nötr';
-        const sentBadgeClass = item.sentiment?.label === 'positive' ? 'badge-positive' : item.sentiment?.label === 'negative' ? 'badge-negative' : 'badge-rank';
+
+        // Mood AI Classification & Badges
+        const moodLabel = (item.mood_label || (item.sentiment?.label === "positive" ? "happy" : item.sentiment?.label === "negative" ? "sad" : "neutral")).toLowerCase();
+        const moodBadges = {
+          happy: { label: "😊 Mutlu", cls: "badge-mood-happy" },
+          sad: { label: "😢 Üzgün", cls: "badge-mood-sad" },
+          angry: { label: "😠 Öfkeli", cls: "badge-mood-angry" },
+          anxious: { label: "😰 Endişeli", cls: "badge-mood-anxious" },
+          neutral: { label: "😐 Nötr", cls: "badge-mood-neutral" }
+        };
+        const currentMoodBadge = moodBadges[moodLabel] || moodBadges.neutral;
 
         const isLessLiked = appState.lessLikedItemIds.has(cid);
         const itemSource = item.source || item.author || "";
+        const itemUserId = item.user_id || itemSource;
+        const isFollowing = appState.followingUserIds?.has(itemUserId);
         const isMuted = itemSource ? appState.mutedSources.has(itemSource) : false;
+        const commentsCount = item.comments_count || (appState.commentsMap && appState.commentsMap[cid] ? appState.commentsMap[cid].length : 0);
 
         const card = document.createElement("article");
         card.className = "feed-card";
@@ -2066,8 +2213,12 @@
               <div class="author-meta">
                 <div class="author-name-row">
                   <span class="author-name">${item.source || item.author || 'Haber Kaynağı'}</span>
+                  ${item.is_verified ? '<span class="badge-verified" title="Doğrulanmış Hesap">✓</span>' : ''}
                   <span class="author-handle">${item.handle || '@' + (item.source || item.author || 'haber').toLowerCase().replace(/[^a-z0-9]/g, '')}</span>
                   ${item.category ? `<span class="badge badge-rank" style="font-size: 0.68rem; padding: 2px 6px;">${item.category}</span>` : ''}
+                  <button class="btn-follow ${isFollowing ? 'following' : ''}" onclick="event.stopPropagation(); handleToggleFollow('${itemUserId}', '${item.source || item.author}')" title="${isFollowing ? 'Takipten Çık' : 'Takip Et'}">
+                    ${isFollowing ? '✓ Takipte' : '+ Takip Et'}
+                  </button>
                 </div>
                 <span class="post-time">${item.time || item.published_at || 'Az önce'}</span>
               </div>
@@ -2083,10 +2234,10 @@
             ${item.title ? `<h4 class="card-title" style="font-size: 1.05rem; font-weight: 700; color: var(--color-text-primary); line-height: 1.35; margin: 0;">${item.title}</h4>` : ''}
             <p class="card-text" style="font-size: 0.88rem; color: var(--color-text-secondary); line-height: 1.5; margin: 0;">${item.text || item.summary || item.content}</p>
             
-            <!-- MoodFeed AI & Sentiment Analysis Badges -->
+            <!-- Mood AI & Sentiment Analysis Badges -->
             <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 4px;">
-              <span class="badge ${sentBadgeClass}" style="font-size: 0.72rem; padding: 2px 7px;">
-                Duygu: ${sentLabel}
+              <span class="badge ${currentMoodBadge.cls}" style="font-size: 0.72rem; padding: 3px 8px;">
+                Mood AI: ${currentMoodBadge.label}
               </span>
               <span class="badge ${negScore > 40 ? 'badge-warning' : 'badge-rank'}" style="font-size: 0.72rem; padding: 2px 7px;">
                 Olumsuzluk: %${negScore}
@@ -2118,6 +2269,9 @@
                 <button class="action-btn ${isLiked ? 'liked' : ''}" onclick="handleLikeItem('${cid}')" title="${isLiked ? 'Beğeniyi Kaldır' : 'Beğen'}">
                   ${isLiked ? '❤️' : '🤍'} <span>${(item.likes_count || 142) + (isLiked ? 1 : 0)}</span>
                 </button>
+                <button class="action-btn" onclick="toggleCommentsSection('${cid}')" title="Yorumlar & Yanıtlar">
+                  💬 <span id="comment-count-badge-${cid}">${commentsCount}</span>
+                </button>
                 <button class="action-btn ${isSaved ? 'saved' : ''}" onclick="handleSaveItem('${cid}')" title="${isSaved ? 'Kayıtlardan Kaldır' : 'Kaydet'}">
                   ${isSaved ? '🔖' : '📑'} <span>${isSaved ? 'Kaydedildi' : 'Kaydet'}</span>
                 </button>
@@ -2140,6 +2294,16 @@
                 <button class="btn-why-here" onclick="openDrawer('${cid}')">
                   ℹ️ Neden burada?
                 </button>
+              </div>
+            </div>
+
+            <!-- Expandable Comments & Replies Section -->
+            <div class="comments-section" id="comments-section-${cid}" style="display: none;">
+              <div id="comments-list-${cid}" style="display: flex; flex-direction: column; gap: 6px;"></div>
+              
+              <div class="comment-input-row">
+                <input type="text" id="comment-input-${cid}" placeholder="Düşünceni veya yorumunu yaz..." onkeydown="if(event.key==='Enter') submitComment('${cid}')">
+                <button class="btn btn-primary btn-sm" onclick="submitComment('${cid}')">Yorum Yap</button>
               </div>
             </div>
           </div>
@@ -2963,20 +3127,226 @@
       if (activePill) activePill.classList.add("active");
       renderMainFeed();
     }
-    function handleFeedSort(sortBy) {
-      appState.sortBy = sortBy;
+    function handleMoodFilter(mood) {
+      appState.moodFilter = mood === "all" ? null : mood;
+      document.querySelectorAll(".mood-pill").forEach(p => p.classList.remove("active"));
+      const pill = document.getElementById(`mood-${mood}`) || document.getElementById("mood-all");
+      if (pill) pill.classList.add("active");
       renderMainFeed();
     }
 
-    function handleRevertItem(cid) {
-      if (appState.revertedItemIds.has(cid)) appState.revertedItemIds.delete(cid);
-      else {
-        appState.revertedItemIds.add(cid);
-        showToast("İçerik orijinal sırasına döndürüldü.");
-        completePilotTask("revertItem");
+    async function handleToggleFollow(targetUserId, targetName) {
+      if (!targetUserId) return;
+      const isFollowing = appState.followingUserIds.has(targetUserId);
+      const method = isFollowing ? "DELETE" : "POST";
+
+      if (isFollowing) {
+        appState.followingUserIds.delete(targetUserId);
+        showToast(`Takipten çıkıldı: ${targetName}`);
+      } else {
+        appState.followingUserIds.add(targetUserId);
+        showToast(`✓ Takip ediliyor: ${targetName}`);
       }
       renderMainFeed();
-      renderCompareView();
+
+      try {
+        const headers = {};
+        if (appState.token) headers["Authorization"] = `Bearer ${appState.token}`;
+        await fetch(`/v1/users/${encodeURIComponent(targetUserId)}/follow`, { method, headers });
+      } catch (err) {
+        console.debug("Follow action failed:", err);
+      }
+    }
+
+    async function toggleCommentsSection(cid) {
+      const section = document.getElementById(`comments-section-${cid}`);
+      if (!section) return;
+      const isHidden = section.style.display === "none";
+      section.style.display = isHidden ? "flex" : "none";
+      if (isHidden) {
+        await fetchAndRenderComments(cid);
+      }
+    }
+
+    async function fetchAndRenderComments(cid) {
+      const listContainer = document.getElementById(`comments-list-${cid}`);
+      if (!listContainer) return;
+      listContainer.innerHTML = `<div style="font-size: 0.76rem; color: var(--color-text-muted);">Yorumlar yükleniyor...</div>`;
+
+      try {
+        const res = await fetch(`/v1/posts/${encodeURIComponent(cid)}/comments`);
+        if (res.ok) {
+          const data = await res.json();
+          appState.commentsMap[cid] = data.comments || [];
+          const countBadge = document.getElementById(`comment-count-badge-${cid}`);
+          if (countBadge) countBadge.textContent = (data.comments || []).length;
+          renderCommentsList(cid, data.comments || []);
+        } else {
+          listContainer.innerHTML = `<div style="font-size: 0.76rem; color: var(--color-text-muted);">Henüz yorum yapılmamış. İlk yorumu siz yapın!</div>`;
+        }
+      } catch (err) {
+        listContainer.innerHTML = `<div style="font-size: 0.76rem; color: var(--color-text-muted);">Henüz yorum yok.</div>`;
+      }
+    }
+
+    function renderCommentsList(cid, comments) {
+      const listContainer = document.getElementById(`comments-list-${cid}`);
+      if (!listContainer) return;
+      listContainer.replaceChildren();
+
+      if (!comments || comments.length === 0) {
+        listContainer.innerHTML = `<div style="font-size: 0.76rem; color: var(--color-text-muted);">Henüz yorum yok. İlk yorumu siz yapın!</div>`;
+        return;
+      }
+
+      comments.forEach(c => {
+        const itemDiv = document.createElement("div");
+        itemDiv.className = "comment-item";
+
+        const moodBadges = {
+          happy: "😊 Mutlu",
+          sad: "😢 Üzgün",
+          angry: "😠 Öfkeli",
+          anxious: "😰 Endişeli",
+          neutral: "😐 Nötr"
+        };
+        const moodText = moodBadges[c.mood_label] || "😐";
+
+        itemDiv.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <strong>${c.author || 'Kullanıcı'}</strong>
+              ${c.is_verified ? '<span class="badge-verified">✓</span>' : ''}
+              <span style="font-size: 0.72rem; color: var(--color-text-muted);">@${c.username || 'kullanici'}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span class="badge badge-rank" style="font-size: 0.68rem;">Mood AI: ${moodText}</span>
+              ${c.user_id === appState.currentUser?.id ? `
+                <button onclick="handleDeleteComment('${cid}', '${c.id}')" style="background:none; border:none; color:var(--color-danger); cursor:pointer; font-size:0.75rem;">🗑️</button>
+              ` : ''}
+            </div>
+          </div>
+          <div style="color: var(--color-text-primary); margin-top: 2px;">${c.content}</div>
+          <div style="display: flex; justify-content: flex-end; margin-top: 2px;">
+            <button onclick="showReplyInput('${cid}', '${c.id}', '${c.author || c.username}')" style="background:none; border:none; color:var(--color-brand); font-size:0.74rem; cursor:pointer; font-weight:600;">↩️ Yanıtla</button>
+          </div>
+          <div id="reply-container-${c.id}" style="display: none; margin-top: 4px;">
+            <div class="comment-input-row">
+              <input type="text" id="reply-input-${c.id}" placeholder="${c.author} kullanıcısına yanıt ver..." onkeydown="if(event.key==='Enter') submitComment('${cid}', '${c.id}')">
+              <button class="btn btn-primary btn-sm" onclick="submitComment('${cid}', '${c.id}')">Yanıtla</button>
+            </div>
+          </div>
+        `;
+
+        if (c.replies && c.replies.length > 0) {
+          const repliesWrap = document.createElement("div");
+          repliesWrap.style.cssText = "display: flex; flex-direction: column; gap: 4px; margin-top: 4px;";
+          c.replies.forEach(r => {
+            const rDiv = document.createElement("div");
+            rDiv.className = "comment-reply-item";
+            rDiv.innerHTML = `
+              <div style="display: flex; justify-content: space-between;">
+                <strong>${r.author || 'Kullanıcı'}</strong>
+                <span class="badge badge-rank" style="font-size: 0.65rem;">${moodBadges[r.mood_label] || '😐'}</span>
+              </div>
+              <div style="margin-top: 2px;">${r.content}</div>
+            `;
+            repliesWrap.append(rDiv);
+          });
+          itemDiv.append(repliesWrap);
+        }
+
+        listContainer.append(itemDiv);
+      });
+    }
+
+    function showReplyInput(cid, commentId, authorName) {
+      const container = document.getElementById(`reply-container-${commentId}`);
+      if (container) {
+        container.style.display = container.style.display === "none" ? "block" : "none";
+        const input = document.getElementById(`reply-input-${commentId}`);
+        if (input) input.focus();
+      }
+    }
+
+    async function submitComment(cid, parentCommentId = null) {
+      const inputId = parentCommentId ? `reply-input-${parentCommentId}` : `comment-input-${cid}`;
+      const input = document.getElementById(inputId);
+      const text = input ? input.value.trim() : "";
+      if (!text) return;
+
+      try {
+        const headers = { "Content-Type": "application/json" };
+        if (appState.token) headers["Authorization"] = `Bearer ${appState.token}`;
+
+        const res = await fetch(`/v1/posts/${encodeURIComponent(cid)}/comments`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            content: text,
+            parent_comment_id: parentCommentId
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (input) input.value = "";
+          showToast(`✓ Yorum paylaşıldı (Mood AI: ${data.comment?.mood_label || 'analiz edildi'})`);
+          await fetchAndRenderComments(cid);
+        } else {
+          showToast("Yorum gönderilemedi.");
+        }
+      } catch (err) {
+        showToast("Yorum gönderilirken hata oluştu.");
+      }
+    }
+
+    async function handleDeleteComment(cid, commentId) {
+      try {
+        const headers = {};
+        if (appState.token) headers["Authorization"] = `Bearer ${appState.token}`;
+        const res = await fetch(`/v1/comments/${encodeURIComponent(commentId)}`, { method: "DELETE", headers });
+        if (res.ok) {
+          showToast("Yorum silindi.");
+          await fetchAndRenderComments(cid);
+        }
+      } catch (err) {}
+    }
+
+    async function handleCreatePostFromFeed() {
+      const txt = document.getElementById("composer-post-text");
+      const content = txt ? txt.value.trim() : "";
+      if (!content) {
+        showToast("Lütfen bir gönderi metni yazın.");
+        return;
+      }
+
+      try {
+        const headers = { "Content-Type": "application/json" };
+        if (appState.token) headers["Authorization"] = `Bearer ${appState.token}`;
+
+        const res = await fetch("/v1/posts", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            content: content,
+            category: "Gündem"
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (txt) txt.value = "";
+          const newPost = data.post;
+          appState.customPosts.unshift(newPost);
+          showToast(`✓ Gönderi yayınlandı! Mood AI: ${newPost.mood_label || 'nötr'}`);
+          renderMainFeed();
+        } else {
+          showToast("Gönderi kaydedilemedi.");
+        }
+      } catch (err) {
+        showToast("Gönderi kaydedilirken hata oluştu.");
+      }
     }
 
     async function openDrawer(contentId) {

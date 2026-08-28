@@ -49,17 +49,17 @@ def _ensure_sqlite_schema(eng) -> None:
         if "user_preferences" in insp.get_table_names():
             existing_cols = {c["name"] for c in insp.get_columns("user_preferences")}
             cols_to_add = {
-                "spiral_threshold": "REAL NOT NULL DEFAULT 0.7",
-                "negative_threshold": "REAL NOT NULL DEFAULT 0.6",
-                "positive_threshold": "REAL NOT NULL DEFAULT 0.5",
-                "toxicity_threshold": "REAL NOT NULL DEFAULT 0.6",
-                "theme": "VARCHAR(32) NOT NULL DEFAULT 'light'",
-                "active_profile": "TEXT NOT NULL DEFAULT 'balanced'",
-                "active_scenario": "TEXT NOT NULL DEFAULT 'default'",
-                "profile_preset": "TEXT NOT NULL DEFAULT 'balanced'",
-                "low_intensity_mode": "INTEGER NOT NULL DEFAULT 0",
-                "muted_sources": "TEXT NOT NULL DEFAULT '[]'",
-                "updated_at": "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
+                "spiral_threshold": "REAL DEFAULT 0.7",
+                "negative_threshold": "REAL DEFAULT 0.6",
+                "positive_threshold": "REAL DEFAULT 0.5",
+                "toxicity_threshold": "REAL DEFAULT 0.6",
+                "theme": "VARCHAR(32) DEFAULT 'light'",
+                "active_profile": "TEXT DEFAULT 'balanced'",
+                "active_scenario": "TEXT DEFAULT 'default'",
+                "profile_preset": "TEXT DEFAULT 'balanced'",
+                "low_intensity_mode": "INTEGER DEFAULT 0",
+                "muted_sources": "TEXT DEFAULT '[]'",
+                "updated_at": "TIMESTAMP",
             }
             with eng.begin() as conn:
                 for col_name, col_def in cols_to_add.items():
@@ -68,6 +68,7 @@ def _ensure_sqlite_schema(eng) -> None:
                             conn.execute(text(f"ALTER TABLE user_preferences ADD COLUMN {col_name} {col_def}"))
                         except Exception:
                             pass
+
         if "users" in insp.get_table_names():
             existing_user_cols = {c["name"] for c in insp.get_columns("users")}
             user_cols_to_add = {
@@ -75,8 +76,14 @@ def _ensure_sqlite_schema(eng) -> None:
                 "username": "TEXT",
                 "password_hash": "TEXT",
                 "display_name": "TEXT",
+                "full_name": "TEXT",
                 "avatar": "TEXT",
+                "avatar_url": "TEXT",
                 "bio": "TEXT",
+                "is_verified": "INTEGER DEFAULT 0",
+                "is_private": "INTEGER DEFAULT 0",
+                "created_at": "TIMESTAMP",
+                "updated_at": "TIMESTAMP",
                 "last_seen_at": "TIMESTAMP",
             }
             with eng.begin() as conn:
@@ -86,6 +93,39 @@ def _ensure_sqlite_schema(eng) -> None:
                             conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_def}"))
                         except Exception:
                             pass
+
+        if "posts" in insp.get_table_names():
+            existing_post_cols = {c["name"] for c in insp.get_columns("posts")}
+            post_cols_to_add = {
+                "title": "TEXT",
+                "author": "TEXT",
+                "handle": "TEXT",
+                "category": "TEXT DEFAULT 'Gündem'",
+                "mood_score": "REAL DEFAULT 0.0",
+                "mood_label": "TEXT DEFAULT 'neutral'",
+                "sentiment_label": "TEXT DEFAULT 'neutral'",
+                "sentiment_score": "REAL DEFAULT 0.5",
+                "negativity_score": "REAL DEFAULT 0.1",
+                "toxicity_score": "REAL DEFAULT 0.0",
+                "repetition_score": "REAL DEFAULT 0.0",
+                "language": "TEXT DEFAULT 'tr'",
+                "is_published": "INTEGER DEFAULT 1",
+                "created_at": "TIMESTAMP",
+                "updated_at": "TIMESTAMP",
+            }
+            with eng.begin() as conn:
+                for col_name, col_def in post_cols_to_add.items():
+                    if col_name not in existing_post_cols:
+                        try:
+                            conn.execute(text(f"ALTER TABLE posts ADD COLUMN {col_name} {col_def}"))
+                        except Exception:
+                            pass
+    except Exception:
+        pass
+
+if DATABASE_URL.startswith("sqlite"):
+    try:
+        _ensure_sqlite_schema(engine)
     except Exception:
         pass
 
