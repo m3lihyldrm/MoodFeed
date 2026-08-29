@@ -78,29 +78,18 @@ scheduler.add_job(
     replace_existing=True,
 )
 
-app = FastAPI(
-    title="MoodFeed MVP",
-    version=app_settings.app_version,
-    description="Türkçe odaklı, açıklanabilir içerik akışı prototipi.",
-)
+import asyncio
+from contextlib import asynccontextmanager
 
-
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
     try:
         init_db()
     except Exception as e:
         logger.warning("Database initialization warning: %s", e)
 
-    # İlk açılışta RSS haberlerini çek, arşivle ve DB'ye kaydet
-    try:
-        from backend.services.rss_service import RSSIngestionService
-        summary = await RSSIngestionService().ingest_all()
-        print(f"[RSS Service] Startup ingest completed. Inserted {summary.get('inserted', 0)} new items, skipped {summary.get('duplicates_skipped', 0)} duplicates.")
-    except Exception as e:
-        logger.warning("[RSS Service] Initial ingestion warning: %s", e)
-
-    # Sonra cron başlat (Her 1 dakikada bir)
+    # Start background scheduler
     try:
         if not scheduler.running:
             scheduler.start()
@@ -108,15 +97,12 @@ async def startup_event():
     except Exception as e:
         logger.warning("[Scheduler] Scheduler startup warning: %s", e)
 
-
-@app.on_event("shutdown")
-async def shutdown_event():
+    # Initial RSS ingestion in non-blocking background task
     try:
-        if scheduler.running:
-            scheduler.shutdown(wait=False)
-            logger.info("[Scheduler] AsyncIOScheduler shutdown.")
+        from backend.services.rss_service import RSSIngestionService
+        asyncio.create_task(RSSIngestionService().ingest_all())
     except Exception as e:
-        logger.warning("[Scheduler] Scheduler shutdown warning: %s", e)
+        logger.warning("[RSS Service] Initial ingestion task warning: %s", e)
 
     is_clerk = bool(
         app_settings.auth_provider == "clerk"
@@ -140,14 +126,37 @@ async def shutdown_event():
  [Clerk Secret Key]    : {secret_status}
  [Clerk Issuer]        : {app_settings.clerk_issuer or 'Auto-derived'}
  [Clerk JWKS URL]      : {app_settings.clerk_jwks_url or 'Auto-derived'}
- [Mock Auth Adapter]   : {mock_status}
+ [Mock Adapter]        : {mock_status}
  [Database URL]        : {app_settings.database_url}
  [ML Scorer Mode]      : {app_settings.model_provider}
  [Base URL]            : {app_settings.app_base_url}
+ [Docs URL]            : /docs
+ [OpenAPI URL]         : /openapi.json
 ================================================================================
 """
     print(banner)
     logger.info("[Startup] MoodFeed backend ready. Active auth provider: %s", "clerk" if is_clerk else "local")
+
+    yield
+
+    # Shutdown
+    try:
+        if scheduler.running:
+            scheduler.shutdown(wait=False)
+            logger.info("[Scheduler] AsyncIOScheduler shutdown.")
+    except Exception as e:
+        logger.warning("[Scheduler] Scheduler shutdown warning: %s", e)
+
+
+app = FastAPI(
+    title="MoodFeed MVP",
+    version=app_settings.app_version,
+    description="Türkçe odaklı, açıklanabilir içerik akışı prototipi.",
+    docs_url="/docs",
+    openapi_url="/openapi.json",
+    redoc_url="/redoc",
+    lifespan=lifespan,
+)
 
 routers = [
     preferences_router,
@@ -307,9 +316,20 @@ def build_response(request: RerankRequest, user_id: str | None = None) -> Rerank
 @app.get("/profile", include_in_schema=False)
 @app.get("/help", include_in_schema=False)
 @app.get("/privacy", include_in_schema=False)
-def demo_page() -> FileResponse:
-    """Bağımlılıksız yerel demo arayüzünü sunar."""
-    return FileResponse(DEMO_PATH)
+def demo_page():
+    """Bağımlılıksız yerel demo arayüzünü sunar veya API durumunu döner."""
+    if DEMO_PATH.exists():
+        return FileResponse(DEMO_PATH)
+    return {
+        "status": "ok",
+        "service": "MoodFeed API",
+        "version": app_settings.app_version,
+        "docs": "/docs",
+        "openapi": "/openapi.json",
+        "health": "/health",
+        "posts": "/api/posts",
+        "stats": "/api/posts/stats",
+    }
 
 @app.get("/health")
 @app.get("/api/health")
