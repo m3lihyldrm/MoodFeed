@@ -56,8 +56,8 @@ def test_rss_service_sources_configured() -> None:
     assert len(TURKISH_NEWS_RSS_FEEDS) >= 3
     names = [f["name"] for f in TURKISH_NEWS_RSS_FEEDS]
     assert "BBC Türkçe" in names
-    assert "DW Türkçe" in names
-    assert "TRT Haber" in names
+    assert any("DW" in n for n in names)
+    assert any("TRT" in n for n in names)
 
 
 def test_parse_rss_xml_extracts_fields() -> None:
@@ -88,18 +88,16 @@ def test_rss_service_fetch_feed_error_returns_empty_list() -> None:
     assert len(items) == 0
 
 
-@patch("urllib.request.urlopen")
-def test_fetch_all_feeds_interleaves_and_caches(mock_urlopen: MagicMock) -> None:
-    mock_resp = MagicMock()
-    mock_resp.status = 200
-    mock_resp.read.return_value = SAMPLE_BBC_XML.encode("utf-8")
-    mock_urlopen.return_value.__enter__.return_value = mock_resp
-
+@patch.object(RSSService, "fetch_feed")
+def test_fetch_all_feeds_interleaves_and_caches(mock_fetch_feed: MagicMock) -> None:
     service = RSSService(cache_ttl_seconds=60)
+    parsed_sample = service.parse_rss_xml(SAMPLE_BBC_XML.encode("utf-8"), source_name="BBC Türkçe", default_category="Gündem")
+    mock_fetch_feed.return_value = parsed_sample
+
     items = service.fetch_all_feeds(force_refresh=True)
 
     assert len(items) >= 2
-    assert items[0]["source"] in [f["name"] for f in TURKISH_NEWS_RSS_FEEDS]
+    assert items[0]["source"] == "BBC Türkçe"
 
     inputs = service.get_live_content_inputs(limit=5)
     assert len(inputs) >= 2

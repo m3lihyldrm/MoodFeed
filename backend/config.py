@@ -17,39 +17,68 @@ _ROOT_DIR = Path(__file__).resolve().parent.parent
 _env_file = _ROOT_DIR / ".env"
 if _env_file.exists():
     load_dotenv(dotenv_path=_env_file, override=False)
-# Turkish News RSS Feeds List (20+ Sources)
+# Turkish News RSS Feeds List (Verified & Resilient Sources)
 RSS_FEEDS = [
-    # TÜRKİYE - GENEL
-    "https://www.trthaber.com/rss.php",
-    "https://www.ntv.com.tr/rss",
+    # 1. GÜNDEM / GENEL
+    "https://www.trthaber.com/gundem_articles.rss",
+    "https://www.trthaber.com/manset_articles.rss",
+    "https://www.trthaber.com/sondakika_articles.rss",
+    "https://www.ntv.com.tr/gundem.rss",
+    "https://www.ntv.com.tr/turkiye.rss",
     "https://www.haberturk.com/rss",
-    "https://www.sozcu.com.tr/feed/",
-    "https://www.milliyet.com.tr/rss/",
+    "https://www.haberturk.com/rss/manset.xml",
+    "https://www.haberturk.com/rss/kategori/gundem.xml",
+    "https://www.sozcu.com.tr/feeds-haberler",
+    "https://www.milliyet.com.tr/rss/rssnew/gundemrss.xml",
+    "https://www.hurriyet.com.tr/rss/gundem",
+    "https://www.cumhuriyet.com.tr/rss/son_dakika.xml",
+    "https://www.ensonhaber.com/rss/gundem.xml",
 
-    # DÜNYA - TÜRKÇE
+    # 2. DÜNYA - TÜRKÇE
     "https://www.bbc.com/turkce/index.xml",
+    "https://feeds.bbci.co.uk/turkce/rss.xml",
     "https://www.dw.com/tr/rss",
+    "https://rss.dw.com/xml/rss-tur-all",
     "https://tr.euronews.com/rss",
-    "https://www.voaturkce.com/api/z",
+    "https://www.ntv.com.tr/dunya.rss",
+    "https://www.hurriyet.com.tr/rss/dunya",
+    "https://www.trthaber.com/dunya_articles.rss",
 
-    # EKONOMİ
-    "https://www.paraanaliz.com/rss",
-    "https://www.doviz.com/rss",
-    "https://www.altin.in/rss",
+    # 3. EKONOMİ & FİNANS
+    "https://www.trthaber.com/ekonomi_articles.rss",
+    "https://www.ntv.com.tr/ekonomi.rss",
+    "https://www.haberturk.com/rss/kategori/ekonomi.xml",
+    "https://www.hurriyet.com.tr/rss/ekonomi",
+    "https://www.cumhuriyet.com.tr/rss/ekonomi.xml",
+    "https://www.bloomberght.com/rss",
+    "https://www.dunya.com/rss",
 
-    # SPOR
-    "https://www.fanatik.com.tr/rss",
-    "https://www.sporx.com/rss",
-    "https://www.90min.com.tr/rss",
-
-    # TEKNOLOJİ
-    "https://www.webtekno.com/rss/",
+    # 4. TEKNOLOJİ & BİLİM
+    "https://www.webtekno.com/rss.xml",
     "https://www.shiftdelete.net/feed/",
-    "https://www.donanimhaber.com/rss/",
+    "https://www.donanimhaber.com/rss/tum/",
+    "https://www.trthaber.com/bilim_teknoloji_articles.rss",
+    "https://www.ntv.com.tr/teknoloji.rss",
+    "https://www.haberturk.com/rss/kategori/teknoloji.xml",
+    "https://www.hurriyet.com.tr/rss/teknoloji",
+    "https://webrazzi.com/feed/",
+    "https://www.chip.com.tr/rss/",
+    "https://evrimagaci.org/rss.xml",
+    "https://arkeofili.com/feed/",
 
-    # MAGAZİN
-    "https://www.hurriyet.com.tr/rss/magazin/",
-    "https://www.milliyet.com.tr/rss/magazin/",
+    # 5. KÜLTÜR, SPOR, SAĞLIK, ÇEVRE, EĞİTİM
+    "https://www.trthaber.com/kultur_sanat_articles.rss",
+    "https://www.trthaber.com/spor_articles.rss",
+    "https://www.ntv.com.tr/sporskor.rss",
+    "https://www.haberturk.com/rss/kategori/spor.xml",
+    "https://www.hurriyet.com.tr/rss/spor",
+    "https://www.fotomac.com.tr/rss/anasayfa.xml",
+    "https://www.trthaber.com/saglik_articles.rss",
+    "https://www.ntv.com.tr/saglik.rss",
+    "https://yesilgazete.org/feed/",
+    "https://www.iklimhaber.org/feed/",
+    "https://www.trthaber.com/egitim_articles.rss",
+    "https://www.hurriyet.com.tr/rss/egitim",
 ]
 
 
@@ -117,6 +146,11 @@ class Settings(BaseModel):
     content_provider_timeout_seconds: int = 10
     rss_sync_interval_minutes: int = 1
     rss_batch_limit: int = 500
+    rss_ingestion_enabled: bool = True
+    rss_scheduler_enabled: bool = True
+    debug_status_enabled: bool = True
+    cron_secret: str | None = None
+    rss_custom_feeds: list[str] = Field(default_factory=list)
 
     # ML & Mood Thresholds
     model_provider: Literal["rule_based", "berturk"] = "rule_based"
@@ -304,6 +338,31 @@ def load_settings_from_env() -> Settings:
     env_vars["content_provider_type"] = os.getenv("CONTENT_PROVIDER_TYPE", "rss")
     env_vars["content_provider_base_url"] = os.getenv("CONTENT_PROVIDER_BASE_URL", "https://example.com/feed.xml")
     env_vars["content_provider_api_key"] = os.getenv("CONTENT_PROVIDER_API_KEY")
+
+    # RSS Ingestion & Scheduling Config
+    env_vars["rss_ingestion_enabled"] = get_env_bool("RSS_INGESTION_ENABLED", True)
+    env_vars["rss_scheduler_enabled"] = get_env_bool("RSS_SCHEDULER_ENABLED", True)
+    env_vars["debug_status_enabled"] = get_env_bool("DEBUG_STATUS_ENABLED", True)
+    env_vars["cron_secret"] = os.getenv("CRON_SECRET")
+    env_vars["rss_sync_interval_minutes"] = get_env_int("RSS_SYNC_INTERVAL_MINUTES", 1)
+    env_vars["rss_batch_limit"] = get_env_int("RSS_BATCH_LIMIT", 500)
+
+    custom_feeds_raw = os.getenv("RSS_CUSTOM_FEEDS", "").strip()
+    if custom_feeds_raw:
+        if custom_feeds_raw.startswith("[") and custom_feeds_raw.endswith("]"):
+            try:
+                import json
+                parsed_feeds = json.loads(custom_feeds_raw)
+                if isinstance(parsed_feeds, list):
+                    env_vars["rss_custom_feeds"] = [str(x).strip() for x in parsed_feeds if str(x).strip()]
+                else:
+                    env_vars["rss_custom_feeds"] = [custom_feeds_raw]
+            except Exception:
+                env_vars["rss_custom_feeds"] = [f.strip().strip("\"'") for f in custom_feeds_raw.split(",") if f.strip().strip("\"'")]
+        else:
+            env_vars["rss_custom_feeds"] = [f.strip().strip("\"'") for f in custom_feeds_raw.split(",") if f.strip().strip("\"'")]
+    else:
+        env_vars["rss_custom_feeds"] = []
 
     scorer_mode = os.getenv("MOODFEED_SCORER", os.getenv("MODEL_PROVIDER", "rule_based")).lower()
     env_vars["model_provider"] = "berturk" if scorer_mode == "berturk" else "rule_based"

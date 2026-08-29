@@ -22,13 +22,15 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from backend.database.models import Comment, Follow, Like, Notification, Post, Save, User
-from backend.db.database import get_db
+from backend.db.database import get_db, get_storage_mode
 from backend.models import ContentInput
 from backend.scoring import get_scorer
 from backend.services.auth_service import auth_service_instance
 from backend.services.mood_detector import mood_detector
 from backend.services.notification_service import notification_service
 from backend.services.rss_service import rss_service
+from backend.config import settings
+from backend.scheduler import scheduler
 
 logger = logging.getLogger("moodfeed.api.posts")
 router = APIRouter(tags=["social_and_posts"])
@@ -815,3 +817,32 @@ def search_posts_and_content(
         "results": posts_list,
         "posts": posts_list,
     }
+
+
+# ==============================================================================
+# 8. RSS DIAGNOSTICS & STATUS ENDPOINT
+# ==============================================================================
+
+@router.get("/debug/rss-status")
+@router.get("/v1/debug/rss-status")
+@router.get("/api/debug/rss-status")
+def get_debug_rss_status(db: Session = Depends(get_db)) -> dict[str, Any]:
+    """Provides internal diagnostics and operational status for RSS ingestion and storage."""
+    if not getattr(settings, "debug_status_enabled", True):
+        raise HTTPException(status_code=403, detail="Debug status is disabled.")
+
+    total_posts = db.query(Post).filter(Post.is_published.is_(True)).count()
+    sources = rss_service.get_configured_feeds()
+
+    return {
+        "status": "ok",
+        "ingestion_enabled": bool(getattr(settings, "rss_ingestion_enabled", True)),
+        "scheduler_enabled": bool(getattr(settings, "rss_scheduler_enabled", True)),
+        "scheduler_running": bool(getattr(scheduler, "running", False)),
+        "source_count": len(sources),
+        "last_summary": rss_service.last_summary,
+        "last_error": rss_service.last_error,
+        "post_count": total_posts,
+        "storage_mode": get_storage_mode(),
+    }
+

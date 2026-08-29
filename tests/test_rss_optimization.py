@@ -78,11 +78,9 @@ def test_deduplication_filters_identical_title_and_link() -> None:
     </rss>
     """
 
-    with mock.patch("urllib.request.urlopen") as mock_urlopen:
-        mock_resp = mock.MagicMock()
-        mock_resp.status = 200
-        mock_resp.read.return_value = feed_xml.encode("utf-8")
-        mock_urlopen.return_value.__enter__.return_value = mock_resp
+    with mock.patch.object(RSSService, "fetch_feed") as mock_fetch:
+        parsed_sample = service.parse_rss_xml(feed_xml.encode("utf-8"), source_name="Haber Kanalı", default_category="Gündem")
+        mock_fetch.return_value = parsed_sample
 
         items = service.fetch_all_feeds(force_refresh=True)
         # Should deduplicate down to 2 distinct items

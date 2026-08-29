@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 from typing import Literal
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -54,11 +54,9 @@ from backend.models import (
     ToggleRequest,
     ToggleResponse,
 )
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.interval import IntervalTrigger
-
 from backend.reranking import rerank
 from backend.scoring import PROFILE_CONFIGS, SCENARIO_CONFIGS, ScoreConfig, get_scorer
+from backend.scheduler import scheduler, start_scheduler, shutdown_scheduler
 
 logger = logging.getLogger("moodfeed.main")
 logging.basicConfig(level=getattr(logging, app_settings.log_level, logging.INFO))
@@ -68,15 +66,6 @@ DEMO_PATH = ROOT_DIR / "frontend" / "index.html"
 scorer, config = get_scorer(), ScoreConfig()
 feed_settings = {"enabled": True}
 last_results: dict[str, RankedContent] = {}
-
-# Background Scheduler for RSS Ingestion (Every 1 minute)
-scheduler = AsyncIOScheduler()
-scheduler.add_job(
-    rss_service.ingest_all,
-    trigger=IntervalTrigger(minutes=1),
-    id="rss_ingestion",
-    replace_existing=True,
-)
 
 import asyncio
 from contextlib import asynccontextmanager
@@ -91,16 +80,21 @@ async def lifespan(app: FastAPI):
 
     # Start background scheduler
     try:
-        if not scheduler.running:
-            scheduler.start()
-            logger.info("[Scheduler] AsyncIOScheduler started successfully (Interval: 1 min).")
+        if app_settings.rss_scheduler_enabled:
+            start_scheduler()
+            logger.info("[Scheduler] AsyncIOScheduler started successfully.")
+        else:
+            logger.info("[Scheduler] Scheduler startup skipped: RSS_SCHEDULER_ENABLED is false.")
     except Exception as e:
         logger.warning("[Scheduler] Scheduler startup warning: %s", e)
 
     # Initial RSS ingestion in non-blocking background task
     try:
-        from backend.services.rss_service import RSSIngestionService
-        asyncio.create_task(RSSIngestionService().ingest_all())
+        if app_settings.rss_ingestion_enabled:
+            asyncio.create_task(rss_service.ingest_all())
+            logger.info("[RSS Service] Initial background ingestion triggered.")
+        else:
+            logger.info("[RSS Service] Ingestion skipped on startup: RSS_INGESTION_ENABLED is false.")
     except Exception as e:
         logger.warning("[RSS Service] Initial ingestion task warning: %s", e)
 
@@ -141,9 +135,7 @@ async def lifespan(app: FastAPI):
 
     # Shutdown
     try:
-        if scheduler.running:
-            scheduler.shutdown(wait=False)
-            logger.info("[Scheduler] AsyncIOScheduler shutdown.")
+        shutdown_scheduler()
     except Exception as e:
         logger.warning("[Scheduler] Scheduler shutdown warning: %s", e)
 
@@ -383,11 +375,66 @@ def toggle_settings(request: ToggleRequest) -> ToggleResponse:
 
 @app.post("/cron/ingest")
 @app.post("/api/cron/ingest")
-def cron_ingest():
+def cron_ingest(
+    authorization: str | None = Header(None),
+    x_cron_secret: str | None = Header(None),
+):
     """Manual/Cron trigger endpoint for RSS ingestion and archiving."""
+    configured_secret = app_settings.cron_secret
+    if app_settings.app_env == "production":
+        if not configured_secret:
+            raise HTTPException(status_code=403, detail="CRON_SECRET is required in production environment.")
+        provided_secret = None
+        if authorization and authorization.startswith("Bearer "):
+            provided_secret = authorization.split(" ")[1].strip()
+        elif x_cron_secret:
+            provided_secret = x_cron_secret.strip()
+        if not provided_secret or provided_secret != configured_secret:
+            raise HTTPException(status_code=401, detail="Invalid or missing cron authorization token.")
+    elif configured_secret:
+        # In non-production, if a secret is configured and headers are provided, validate it
+        provided_secret = None
+        if authorization and authorization.startswith("Bearer "):
+            provided_secret = authorization.split(" ")[1].strip()
+        elif x_cron_secret:
+            provided_secret = x_cron_secret.strip()
+        if provided_secret and provided_secret != configured_secret:
+            raise HTTPException(status_code=401, detail="Invalid cron authorization token.")
+
     from backend.services.rss_service import rss_service
     summary = rss_service.ingest_all_sync()
     return {"status": "ok", "summary": summary}
+
+
+@app.get("/debug/rss-status")
+@app.get("/api/debug/rss-status")
+def debug_rss_status():
+    """Diagnostics endpoint for RSS pipeline and storage status."""
+    if not app_settings.debug_status_enabled:
+        raise HTTPException(status_code=403, detail="Debug status is disabled.")
+
+    from backend.db.database import get_db_session, get_storage_mode
+    from backend.database.models import Post
+    from backend.scheduler import scheduler
+    from backend.services.rss_service import rss_service
+
+    session = get_db_session()
+    try:
+        total_posts = session.query(Post).filter(Post.is_published.is_(True)).count()
+    finally:
+        session.close()
+
+    return {
+        "status": "ok",
+        "ingestion_enabled": bool(app_settings.rss_ingestion_enabled),
+        "scheduler_enabled": bool(app_settings.rss_scheduler_enabled),
+        "scheduler_running": bool(scheduler.running),
+        "source_count": len(rss_service.get_configured_feeds()),
+        "last_summary": rss_service.last_summary,
+        "last_error": rss_service.last_error,
+        "post_count": total_posts,
+        "storage_mode": get_storage_mode(),
+    }
 
 
 @app.get("/transparency/{content_id}")
