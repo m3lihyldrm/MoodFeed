@@ -116,7 +116,7 @@ class User(Base):
 
 
 class Post(Base):
-    """User Post entity stored persistently in PostgreSQL."""
+    """User and RSS Post entity stored persistently in PostgreSQL."""
     __tablename__ = "posts"
 
     id = Column(Uuid, primary_key=True, default=uuid.uuid4)
@@ -126,19 +126,43 @@ class Post(Base):
         nullable=False,
         index=True,
     )
-    content = Column(String(2000), nullable=False)
-    title = Column(String(255), nullable=True)
+    content = Column(String(4000), nullable=False)
+    title = Column(String(300), nullable=True)
     author = Column(String(120), nullable=True)
     handle = Column(String(64), nullable=True)
     category = Column(String(64), nullable=False, default="Gündem")
+    source_name = Column(String(120), nullable=True)
+    source_url = Column(String(500), nullable=True)
+    original_url = Column(String(500), nullable=True, index=True)
+    image_url = Column(String(500), nullable=True)
+    published_at = Column(DateTime(timezone=True), nullable=True)
+    fetched_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        nullable=True,
+    )
+    normalized_title = Column(String(255), nullable=True, index=True)
+    content_hash = Column(String(64), nullable=True, index=True)
     mood_score = Column(Float, nullable=False, default=0.0)  # -1.0 to 1.0
-    mood_label = Column(String(32), nullable=False, default="neutral")  # happy, sad, angry, anxious, neutral
+    mood_label = Column(String(32), nullable=False, default="neutral")  # calm, happy, neutral, anxious, sad, angry
+    mood_distribution = Column(
+        JSON().with_variant(JSONB, "postgresql"),
+        nullable=True,
+        default=dict,
+    )
     sentiment_label = Column(String(32), nullable=False, default="neutral")
     sentiment_score = Column(Float, nullable=False, default=0.5)
     negativity_score = Column(Float, nullable=False, default=0.1)
     toxicity_score = Column(Float, nullable=False, default=0.0)
+    spam_score = Column(Float, nullable=False, default=0.0)
+    bot_risk = Column(String(32), nullable=False, default="low")
     repetition_score = Column(Float, nullable=False, default=0.0)
     language = Column(String(8), nullable=False, default="tr")
+    metadata_json = Column(
+        JSON().with_variant(JSONB, "postgresql"),
+        nullable=True,
+        default=dict,
+    )
     is_published = Column(Boolean, nullable=False, default=True)
     created_at = Column(
         DateTime(timezone=True),
@@ -158,26 +182,45 @@ class Post(Base):
     comments = relationship("Comment", back_populates="post", cascade="all, delete-orphan")
 
     def to_dict(self) -> dict[str, Any]:
+        src = self.source_name or self.author or (self.user.display_name if self.user else "Haber Kaynağı")
+        orig_url = self.original_url or self.source_url or ""
+        img_url = self.image_url or (self.metadata_json.get("image_url") if isinstance(self.metadata_json, dict) else None)
         return {
             "id": str(self.id),
             "content_id": str(self.id),
             "user_id": str(self.user_id),
             "content": self.content,
             "text": self.content,
+            "summary": self.content[:280] if len(self.content) > 280 else self.content,
             "title": self.title or (self.content[:40] + "..." if len(self.content) > 40 else self.content),
-            "author": self.author or (self.user.display_name if self.user else "Kullanıcı"),
-            "handle": self.handle or ("@" + (self.user.username if self.user and self.user.username else "kullanici")),
-            "avatar": self.user.avatar if self.user and self.user.avatar else "👤",
+            "author": src,
+            "source": src,
+            "source_name": src,
+            "source_url": self.source_url,
+            "original_url": orig_url,
+            "url": orig_url,
+            "link": orig_url,
+            "image_url": img_url,
+            "handle": self.handle or ("@" + (self.user.username if self.user and self.user.username else src.lower().replace(" ", "").replace(".", ""))),
+            "avatar": self.user.avatar if self.user and self.user.avatar else (src[0].upper() if src else "📰"),
             "category": self.category,
             "mood_score": float(self.mood_score),
             "mood_label": self.mood_label,
+            "mood_distribution": self.mood_distribution or {},
             "sentiment": {"label": self.sentiment_label, "score": float(self.sentiment_score)},
             "sentiment_label": self.sentiment_label,
             "sentiment_score": float(self.sentiment_score),
             "negativity_score": float(self.negativity_score),
             "toxicity_score": float(self.toxicity_score),
+            "spam_score": float(self.spam_score),
+            "bot_risk": self.bot_risk or "low",
             "repetition_score": float(self.repetition_score),
             "language": self.language,
+            "normalized_title": self.normalized_title,
+            "content_hash": self.content_hash,
+            "published_at": self.published_at.isoformat() if self.published_at else (self.created_at.isoformat() if self.created_at else None),
+            "fetched_at": self.fetched_at.isoformat() if self.fetched_at else None,
+            "metadata_json": self.metadata_json or {},
             "is_published": self.is_published,
             "likes_count": len(self.likes) if self.likes else 0,
             "saves_count": len(self.saves) if self.saves else 0,

@@ -101,14 +101,26 @@ def _ensure_sqlite_schema(eng) -> None:
                 "author": "TEXT",
                 "handle": "TEXT",
                 "category": "TEXT DEFAULT 'Gündem'",
+                "source_name": "TEXT",
+                "source_url": "TEXT",
+                "original_url": "TEXT",
+                "image_url": "TEXT",
+                "published_at": "TIMESTAMP",
+                "fetched_at": "TIMESTAMP",
+                "normalized_title": "TEXT",
+                "content_hash": "TEXT",
                 "mood_score": "REAL DEFAULT 0.0",
                 "mood_label": "TEXT DEFAULT 'neutral'",
+                "mood_distribution": "TEXT DEFAULT '{}'",
                 "sentiment_label": "TEXT DEFAULT 'neutral'",
                 "sentiment_score": "REAL DEFAULT 0.5",
                 "negativity_score": "REAL DEFAULT 0.1",
                 "toxicity_score": "REAL DEFAULT 0.0",
+                "spam_score": "REAL DEFAULT 0.0",
+                "bot_risk": "TEXT DEFAULT 'low'",
                 "repetition_score": "REAL DEFAULT 0.0",
                 "language": "TEXT DEFAULT 'tr'",
+                "metadata_json": "TEXT DEFAULT '{}'",
                 "is_published": "INTEGER DEFAULT 1",
                 "created_at": "TIMESTAMP",
                 "updated_at": "TIMESTAMP",
@@ -120,6 +132,21 @@ def _ensure_sqlite_schema(eng) -> None:
                             conn.execute(text(f"ALTER TABLE posts ADD COLUMN {col_name} {col_def}"))
                         except Exception:
                             pass
+                # Ensure indexes
+                index_stmts = [
+                    "CREATE INDEX IF NOT EXISTS ix_posts_original_url ON posts(original_url);",
+                    "CREATE INDEX IF NOT EXISTS ix_posts_normalized_title ON posts(normalized_title);",
+                    "CREATE INDEX IF NOT EXISTS ix_posts_content_hash ON posts(content_hash);",
+                    "CREATE INDEX IF NOT EXISTS ix_posts_mood_label ON posts(mood_label);",
+                    "CREATE INDEX IF NOT EXISTS ix_posts_category ON posts(category);",
+                    "CREATE INDEX IF NOT EXISTS ix_posts_published_at ON posts(published_at);",
+                    "CREATE INDEX IF NOT EXISTS ix_posts_created_at ON posts(created_at);",
+                ]
+                for stmt in index_stmts:
+                    try:
+                        conn.execute(text(stmt))
+                    except Exception:
+                        pass
     except Exception:
         pass
 
@@ -133,8 +160,9 @@ if DATABASE_URL.startswith("sqlite"):
 def _get_fallback_sessionmaker() -> sessionmaker:
     global _fallback_engine, _FallbackSessionLocal
     if _FallbackSessionLocal is None:
+        db_path = "/tmp/moodfeed_local.db" if (os.getenv("VERCEL") == "1" or os.name != "nt") else "moodfeed_local.db"
         _fallback_engine = create_engine(
-            "sqlite:///moodfeed_local.db",
+            f"sqlite:///{db_path}",
             echo=False,
             future=True,
             connect_args={"check_same_thread": False},

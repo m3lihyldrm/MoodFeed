@@ -17,9 +17,40 @@ _ROOT_DIR = Path(__file__).resolve().parent.parent
 _env_file = _ROOT_DIR / ".env"
 if _env_file.exists():
     load_dotenv(dotenv_path=_env_file, override=False)
-else:
-    load_dotenv(override=False)
+# Turkish News RSS Feeds List (20+ Sources)
+RSS_FEEDS = [
+    # TÜRKİYE - GENEL
+    "https://www.trthaber.com/rss.php",
+    "https://www.ntv.com.tr/rss",
+    "https://www.haberturk.com/rss",
+    "https://www.sozcu.com.tr/feed/",
+    "https://www.milliyet.com.tr/rss/",
 
+    # DÜNYA - TÜRKÇE
+    "https://www.bbc.com/turkce/index.xml",
+    "https://www.dw.com/tr/rss",
+    "https://tr.euronews.com/rss",
+    "https://www.voaturkce.com/api/z",
+
+    # EKONOMİ
+    "https://www.paraanaliz.com/rss",
+    "https://www.doviz.com/rss",
+    "https://www.altin.in/rss",
+
+    # SPOR
+    "https://www.fanatik.com.tr/rss",
+    "https://www.sporx.com/rss",
+    "https://www.90min.com.tr/rss",
+
+    # TEKNOLOJİ
+    "https://www.webtekno.com/rss/",
+    "https://www.shiftdelete.net/feed/",
+    "https://www.donanimhaber.com/rss/",
+
+    # MAGAZİN
+    "https://www.hurriyet.com.tr/rss/magazin/",
+    "https://www.milliyet.com.tr/rss/magazin/",
+]
 
 
 class Settings(BaseModel):
@@ -75,21 +106,28 @@ class Settings(BaseModel):
     rate_limit_redis_url: str = "redis://localhost:6379/1"
     rate_limit_requests_per_minute: int = 60
 
-    # Content Ingestion
+    # Content Ingestion & RSS Archiving
     content_provider_enabled: bool = False
     content_provider_type: str = "rss"
     content_provider_base_url: str = "https://example.com/feed.xml"
     content_provider_api_key: str | None = None
     content_provider_sync_interval_minutes: int = 30
     content_provider_timeout_seconds: int = 10
+    rss_sync_interval_minutes: int = 1
+    rss_batch_limit: int = 500
 
-    # ML & Signal Pipeline
+    # ML & Mood Thresholds
     model_provider: Literal["rule_based", "berturk"] = "rule_based"
     model_name: str = "dbmdz/bert-base-turkish-sentiment-cased"
     model_version: str = "1.0.0"
     model_timeout_ms: int = 500
     model_device: str = "cpu"
     model_batch_size: int = 16
+    mood_threshold_angry: float = 0.20
+    mood_threshold_anxious: float = 0.20
+    mood_threshold_sad: float = 0.20
+    mood_threshold_happy: float = 0.25
+    mood_threshold_calm: float = 0.25
 
     # Observability & Logging
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"

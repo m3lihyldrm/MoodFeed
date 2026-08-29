@@ -1,4 +1,4 @@
-﻿"""MoodFeed Admin Dashboard & Control Center Router.
+"""MoodFeed Admin Dashboard & Control Center Router.
 
 Provides enterprise SaaS admin endpoints:
 - KPI metrics (DAU, MAU, Retention, Churn, Revenue MRR)
@@ -180,4 +180,44 @@ def get_system_health() -> dict[str, Any]:
             "email_service": {"status": "up", "latency_ms": 2.1, "provider": "SendGrid / SMTP"},
             "billing_stripe": {"status": "up", "latency_ms": 5.4, "mode": "Live / Sandbox"},
         },
+    }
+
+
+@router.post("/ingest")
+@router.post("/cron/ingest")
+def trigger_admin_ingest(db: Session = Depends(get_db)) -> dict[str, Any]:
+    """Manually triggers concurrent RSS feed ingestion and archive deduplication."""
+    from backend.services.rss_service import rss_service
+    summary = rss_service.ingest_all_sync(db_session=db)
+    return {
+        "success": True,
+        "message": "RSS ingestion completed successfully.",
+        "summary": summary,
+    }
+
+
+@router.post("/retention/cleanup")
+def trigger_retention_cleanup(
+    days: int = Query(90, ge=1, le=3650),
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    """Manually triggers data retention cleanup for posts older than specified days."""
+    from backend.services.rss_service import rss_service
+    deleted_count = rss_service.run_retention_cleanup(days=days, db_session=db)
+    return {
+        "success": True,
+        "retention_days": days,
+        "deleted_count": deleted_count,
+        "message": f"{days} günden eski {deleted_count} haber arşivlendi/temizlendi.",
+    }
+
+
+@router.get("/rss-sources")
+def list_rss_sources() -> dict[str, Any]:
+    """Lists configured Turkish news RSS sources and category mappings."""
+    from backend.services.rss_service import TURKISH_NEWS_RSS_FEEDS, rss_service
+    return {
+        "total_sources": len(TURKISH_NEWS_RSS_FEEDS),
+        "sources": TURKISH_NEWS_RSS_FEEDS,
+        "last_summary": rss_service.last_summary,
     }

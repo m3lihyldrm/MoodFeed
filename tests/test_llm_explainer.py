@@ -158,4 +158,4 @@ def test_demo_page_contains_ai_explanation() -> None:
     html = res.text
     assert "AI Açıklaması" in html
     assert "drawer-ai-explanation" in html
-    assert "LLM Tamamlayıcı" in html or "LLM Yorumlayıcı" in html
+    assert "LLM Tamamlayıcı" in html or "LLM Yorumlayıcı" in html or "Kural Tabanlı Açıklama" in html

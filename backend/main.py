@@ -9,8 +9,14 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
+import sys
 # Load environment variables early
 ROOT_DIR = Path(__file__).resolve().parent.parent
+BACKEND_DIR = Path(__file__).resolve().parent
+for p in (str(BACKEND_DIR), str(ROOT_DIR)):
+    if p not in sys.path:
+        sys.path.insert(0, p)
+
 env_file = ROOT_DIR / ".env"
 if env_file.exists():
     load_dotenv(dotenv_path=env_file, override=False)
@@ -27,8 +33,13 @@ from backend.api.interactions import router as interactions_router
 from backend.api.admin import router as admin_router
 from backend.api.webhooks import router as webhooks_router
 from backend.api.analytics import router as analytics_router
+from backend.api.stats import router as stats_router
 from backend.config import settings as app_settings
 from backend.db.database import init_db
+try:
+    from backend.services.rss_service import rss_service
+except ImportError:
+    from services.rss_service import rss_service
 from backend.models import (
     AnalysisResult,
     ContentInput,
@@ -43,6 +54,9 @@ from backend.models import (
     ToggleRequest,
     ToggleResponse,
 )
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+
 from backend.reranking import rerank
 from backend.scoring import PROFILE_CONFIGS, SCENARIO_CONFIGS, ScoreConfig, get_scorer
 
@@ -55,6 +69,15 @@ scorer, config = get_scorer(), ScoreConfig()
 feed_settings = {"enabled": True}
 last_results: dict[str, RankedContent] = {}
 
+# Background Scheduler for RSS Ingestion (Every 1 minute)
+scheduler = AsyncIOScheduler()
+scheduler.add_job(
+    rss_service.ingest_all,
+    trigger=IntervalTrigger(minutes=1),
+    id="rss_ingestion",
+    replace_existing=True,
+)
+
 app = FastAPI(
     title="MoodFeed MVP",
     version=app_settings.app_version,
@@ -63,11 +86,37 @@ app = FastAPI(
 
 
 @app.on_event("startup")
-def startup_event():
+async def startup_event():
     try:
         init_db()
     except Exception as e:
         logger.warning("Database initialization warning: %s", e)
+
+    # İlk açılışta RSS haberlerini çek, arşivle ve DB'ye kaydet
+    try:
+        from backend.services.rss_service import RSSIngestionService
+        summary = await RSSIngestionService().ingest_all()
+        print(f"[RSS Service] Startup ingest completed. Inserted {summary.get('inserted', 0)} new items, skipped {summary.get('duplicates_skipped', 0)} duplicates.")
+    except Exception as e:
+        logger.warning("[RSS Service] Initial ingestion warning: %s", e)
+
+    # Sonra cron başlat (Her 1 dakikada bir)
+    try:
+        if not scheduler.running:
+            scheduler.start()
+            logger.info("[Scheduler] AsyncIOScheduler started successfully (Interval: 1 min).")
+    except Exception as e:
+        logger.warning("[Scheduler] Scheduler startup warning: %s", e)
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    try:
+        if scheduler.running:
+            scheduler.shutdown(wait=False)
+            logger.info("[Scheduler] AsyncIOScheduler shutdown.")
+    except Exception as e:
+        logger.warning("[Scheduler] Scheduler shutdown warning: %s", e)
 
     is_clerk = bool(
         app_settings.auth_provider == "clerk"
@@ -100,19 +149,25 @@ def startup_event():
     print(banner)
     logger.info("[Startup] MoodFeed backend ready. Active auth provider: %s", "clerk" if is_clerk else "local")
 
-app.include_router(preferences_router)
-app.include_router(auth_router)
-app.include_router(posts_router)
-app.include_router(activity_router)
-app.include_router(interactions_router)
-app.include_router(admin_router)
-app.include_router(webhooks_router)
-app.include_router(analytics_router)
-app.include_router(v1_router)
-app.include_router(explainer_router)
+routers = [
+    preferences_router,
+    auth_router,
+    posts_router,
+    activity_router,
+    interactions_router,
+    admin_router,
+    webhooks_router,
+    analytics_router,
+    v1_router,
+    explainer_router,
+]
+for r in routers:
+    app.include_router(r)
+    app.include_router(r, prefix="/api")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=app_settings.cors_origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -134,10 +189,10 @@ def load_sample_feed() -> list[ContentInput]:
         raise HTTPException(status_code=500, detail="Örnek akış verisi okunamadı.") from error
 
 def load_live_feed() -> list[ContentInput]:
-    """Canlı Türkçe haber RSS servisinden içerikleri çeker; hata veya erişilememe durumunda yerel örnek veriye fallback yapar."""
+    """Canlı Türkçe haber RSS servisinden ve veritabanı arşivinden içerikleri çeker."""
     try:
         from backend.services.rss_service import rss_service
-        items = rss_service.get_live_content_inputs(limit=30)
+        items = rss_service.get_live_content_inputs(limit=100)
         if items and len(items) > 0:
             return items
     except Exception as e:
@@ -243,15 +298,26 @@ def build_response(request: RerankRequest, user_id: str | None = None) -> Rerank
     )
 
 @app.get("/", include_in_schema=False)
+@app.get("/dashboard", include_in_schema=False)
+@app.get("/analytics", include_in_schema=False)
+@app.get("/compare", include_in_schema=False)
+@app.get("/insights", include_in_schema=False)
+@app.get("/preferences", include_in_schema=False)
+@app.get("/settings", include_in_schema=False)
+@app.get("/profile", include_in_schema=False)
+@app.get("/help", include_in_schema=False)
+@app.get("/privacy", include_in_schema=False)
 def demo_page() -> FileResponse:
     """Bağımlılıksız yerel demo arayüzünü sunar."""
     return FileResponse(DEMO_PATH)
 
 @app.get("/health")
+@app.get("/api/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
 @app.get("/feed", response_model=RerankResponse)
+@app.get("/api/feed", response_model=RerankResponse)
 def get_feed(
     profile: Literal["balanced", "calmer", "user_control"] = "balanced",
     scenario: Literal["default", "high_negativity", "highNegativity", "high_toxicity", "highToxicity", "balanced_calmer", "balancedCalmer"] = "default",
@@ -270,14 +336,17 @@ def get_feed(
     )
 
 @app.post("/analyze", response_model=AnalysisResult)
+@app.post("/api/analyze", response_model=AnalysisResult)
 def analyze(content: ContentInput) -> AnalysisResult:
     return scorer.analyze(content)
 
 @app.post("/rerank", response_model=RerankResponse)
+@app.post("/api/rerank", response_model=RerankResponse)
 def rerank_feed(request: RerankRequest) -> RerankResponse:
     return build_response(request)
 
 @app.post("/settings/toggle", response_model=ToggleResponse)
+@app.post("/api/settings/toggle", response_model=ToggleResponse)
 def toggle_settings(request: ToggleRequest) -> ToggleResponse:
     feed_settings["enabled"] = request.enabled
     return ToggleResponse(
@@ -287,7 +356,17 @@ def toggle_settings(request: ToggleRequest) -> ToggleResponse:
         else "MoodFeed özelliği kapatıldı; orijinal akış sırası korunacaktır.",
     )
 
+@app.post("/cron/ingest")
+@app.post("/api/cron/ingest")
+def cron_ingest():
+    """Manual/Cron trigger endpoint for RSS ingestion and archiving."""
+    from backend.services.rss_service import rss_service
+    summary = rss_service.ingest_all_sync()
+    return {"status": "ok", "summary": summary}
+
+
 @app.get("/transparency/{content_id}")
+@app.get("/api/transparency/{content_id}")
 def transparency(content_id: str) -> dict[str, object]:
     item = last_results.get(content_id)
     if item is None:
@@ -301,3 +380,8 @@ def transparency(content_id: str) -> dict[str, object]:
         "notice": "Sıralama gerekçesi kural tabanlı MVP mantığıyla üretilmiştir.",
         "transparency_notice": "Model tahminleri kesin gerçeklik değildir; akış sıralaması deneysel/prototip bir sinyaldir.",
     }
+
+
+# Vercel serverless function compatibility
+def handler(request):
+    return app(request.scope, request.receive, request.send)

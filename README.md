@@ -220,7 +220,7 @@ python scripts/evaluate_scorers.py
 
 Uygulama, bağımlılıksız (Vanilla HTML/CSS/JavaScript) olarak geliştirilmiş, tam responsive ve WCAG 2.2 erişilebilirlik standartlarına uygun modern bir SaaS arayüzüdür:
 
-1. **Karşılama Ekranı (Welcome / Hero):** Sistemin değer önerisi, 3 güven sütunu (şeffaflık, kullanıcı kontrolü, sıfır kalıcı depolama).
+1. **Karşılama Ekranı (Welcome / Hero):** Sistemin değer önerisi, 3 güven sütunu (şeffaflık, kullanıcı kontrolü, KVKK uyumlu takma adlı depolama).
 2. **Başlangıç Rehberi (Onboarding):** 3 adımlı kılavuzlu akış (Algoritma Mantığı, Kontrol Mekanizması, Gizlilik Taahhüdü).
 3. **Ana Akış (Main Feed):** 10 zengin sentetik içerik kartı, anlık arama, 5 filtre sekmesi (Tümü, Kaydedilenler, Yeni, Düşük Yoğunluk, Açıklamalı), sıralama seçenekleri (Önerilen, Orijinal, Düşük Tekrar, Yüksek Açıklanabilirlik) ve kart aksiyonları (Kaydet, Paylaş, Detay, Kararı İncele, Geri Al, Sessize Al).
 4. **İçerik Detay Görünümü (`#content/<id>`):** Seçilen içeriğin derinlemesine sinyal analizi, duygu polaritesi, toksisite oranı ve doğrudan işlem butonları.
@@ -228,7 +228,7 @@ Uygulama, bağımlılıksız (Vanilla HTML/CSS/JavaScript) olarak geliştirilmi�
 6. **Öngörüler Paneli (Insights Dashboard):** RAM oturumunda işlenen içerik sayıları, kategori dağılım çubuk grafiği ve son etkileşim günlüğü.
 7. **Karşılaştırma Ekranı (A/B Compare):** Orijinal ham platform akışı (A) ile MoodFeed önerilen akışını (B) yan yana veya tek kolon görünümünde inceleme.
 8. **Akış Tercihleri (Preferences):** 3 sıralama profili (Dengeli, Daha Sakin, Kullanıcı Kontrolü), simüle edilmiş yüksek risk jüri senaryosu toggle'ı ve sessize alınan kaynak yönetimi.
-9. **Ayarlar ve Gizlilik (Settings & Privacy):** Sıfır kalıcı veri politikası, WCAG 2.2 uyumluluk bildirimi ve oturum sıfırlama (reset) onay modalı.
+9. **Ayarlar ve Gizlilik (Settings & Privacy):** KVKK ve GDPR uyumlu takma adlı veri politikası (PostgreSQL şifreli), WCAG 2.2 uyumluluk bildirimi ve oturum sıfırlama (reset) onay modalı.
 10. **Nasıl Çalışır? / Yardım (Help & FAQ):** Erişilebilir akordeon formatında 6 temel soru-cevap ve etik sınırlar.
 11. **Pilot Değerlendirme Modu:** Onam ekranı, 6 adet gerçek UI eylemiyle tamamlanan görev kalitesi takibi (süre, hata, tekrar deneme), 6 soruluk 1–5 Likert anketi, sonuç raporu ve formula-injection korumalı istemci taraflı JSON/CSV dışa aktarma.
 12. **404 / Hata Ekranı:** Geçersiz route/hash durumlarında kullanıcıyı ana akışa yönlendiren durum ekranı.

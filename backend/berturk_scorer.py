@@ -142,14 +142,28 @@ class BerturkTurkishScorer:
                 raise ValueError("Model çıktısından geçerli bir duygu etiketi üretilemedi.")
 
             sentiment_score = clamp(best_score)
-            normalized_text = content.text.lower()
-            toxic_hits = sum(1 for word in self.fallback_scorer.toxic_words if word in normalized_text)
-            toxicity_score = clamp(toxic_hits * 0.35)
+            # Toksisite ve meta sinyal analizi
+            try:
+                from backend.services.toxicity_service import ToxicityAnalyzer
+                _analyzer = ToxicityAnalyzer()
+                _tox_res = _analyzer.analyze(content.text, content.user_metadata or {})
+                toxicity_score = _tox_res["toxicity_score"]
+                spam_score = _tox_res["spam_score"]
+                bot_risk = _tox_res["bot_risk"]
+                meta_signals = _tox_res["meta_signals"]
+            except Exception:
+                normalized_text = content.text.lower()
+                toxic_hits = sum(1 for word in self.fallback_scorer.toxic_words if word in normalized_text)
+                toxicity_score = clamp(toxic_hits * 0.35)
+                spam_score = 0.0
+                bot_risk = "low"
+                meta_signals = None
+
             negativity_score = clamp(negative_prob * 0.7 + toxicity_score * 0.3)
 
             if toxicity_score > 0:
                 toxic_desc = "Saldırgan ifade sinyalleri bulundu."
-            elif any(word in normalized_text for word in self.fallback_scorer.toxic_context_words):
+            elif any(word in content.text.lower() for word in self.fallback_scorer.toxic_context_words):
                 toxic_desc = "Metin saldırgan içerikten söz ediyor; ancak doğrudan bir kişiye saldırı içermiyor."
             else:
                 toxic_desc = "Saldırgan ifade sinyali bulunmadı."
@@ -161,12 +175,18 @@ class BerturkTurkishScorer:
                 "Bu sonuç makine öğrenmesi destekli deneysel bir prototip tahminidir; kesin doğruluk veya klinik değerlendirme taşımaz.",
             ]
 
+            if bot_risk == "high" or spam_score > 0.3:
+                reasons.append(f"Meta sinyaller: Yüksek spam/bot riski (Skor: {spam_score:.2f}, Bot Riski: {bot_risk}).")
+
             return AnalysisResult(
                 content_id=content.id,
                 text=content.text,
                 sentiment=Sentiment(label=best_label, score=sentiment_score),
                 toxicity_score=toxicity_score,
                 negativity_score=negativity_score,
+                spam_score=spam_score,
+                bot_risk=bot_risk,
+                meta_signals=meta_signals,
                 reason=reasons,
                 scorer=self.get_info(),
                 title=content.title,

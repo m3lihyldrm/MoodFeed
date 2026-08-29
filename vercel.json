@@ -2,13 +2,20 @@
   "version": 2,
   "cleanUrls": true,
   "trailingSlash": false,
+  "functions": {
+    "api/*.py": {
+      "runtime": "@vercel/python"
+    }
+  },
   "rewrites": [
-    { "source": "/v1/(.*)", "destination": "https://moodfeed-api.up.railway.app/v1/$1" },
-    { "source": "/feed", "destination": "https://moodfeed-api.up.railway.app/feed" },
-    { "source": "/health", "destination": "https://moodfeed-api.up.railway.app/health" },
-    { "source": "/analyze", "destination": "https://moodfeed-api.up.railway.app/analyze" },
-    { "source": "/rerank", "destination": "https://moodfeed-api.up.railway.app/rerank" },
-    { "source": "/settings/(.*)", "destination": "https://moodfeed-api.up.railway.app/settings/$1" },
+    { "source": "/v1/(.*)", "destination": "/api/index.py" },
+    { "source": "/feed", "destination": "/api/index.py" },
+    { "source": "/health", "destination": "/api/index.py" },
+    { "source": "/analyze", "destination": "/api/index.py" },
+    { "source": "/rerank", "destination": "/api/index.py" },
+    { "source": "/settings/(.*)", "destination": "/api/index.py" },
+    { "source": "/transparency/(.*)", "destination": "/api/index.py" },
+    { "source": "/api/(.*)", "destination": "/api/index.py" },
     { "source": "/(.*)", "destination": "/frontend/index.html" }
   ]
 }

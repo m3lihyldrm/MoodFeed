@@ -94,11 +94,22 @@ class ContentScorer(Protocol):
     def get_info(self) -> ScorerInfo: ...
 
 class RuleBasedTurkishScorer:
-    """Harici servis gerektirmeyen açıklanabilir Türkçe anahtar sözcük skorlayıcısı."""
+    """Harici servis gerektirmeyen açıklanabilir Türkçe anahtar sözcük ve meta sinyal skorlayıcısı."""
     positive_words = frozenset({"harika", "güzel", "mutlu", "teşekkür", "destek", "umut", "başarı", "sevgi", "keyifli", "iyi"})
     negative_words = frozenset({"kötü", "üzgün", "nefret", "korku", "stres", "zor", "başarısız", "endişe", "sinir", "berbat"})
     toxic_words = frozenset({"aptal", "salak", "iğrenç", "defol", "rezil", "senden nefret", "öldür", "tehdit"})
     toxic_context_words = frozenset({"saldırgan", "hakaret", "küfür", "zorbalık", "şiddet", "taciz"})
+
+    def __init__(self) -> None:
+        try:
+            from backend.services.toxicity_service import ToxicityAnalyzer
+            self._toxicity_analyzer = ToxicityAnalyzer()
+        except ImportError:
+            try:
+                from services.toxicity_service import ToxicityAnalyzer
+                self._toxicity_analyzer = ToxicityAnalyzer()
+            except ImportError:
+                self._toxicity_analyzer = None
 
     def get_info(self) -> ScorerInfo:
         return ScorerInfo(
@@ -124,7 +135,26 @@ class RuleBasedTurkishScorer:
             label, sentiment_score = "positive", clamp(positive_hits / max(1, total_hits))
         else:
             label, sentiment_score = "neutral", 0.5
-        toxicity = clamp(toxic_hits * 0.35)
+
+        # Toksisite ve meta sinyal analizi
+        if self._toxicity_analyzer:
+            tox_res = self._toxicity_analyzer.analyze(content.text, content.user_metadata or {})
+            toxicity = tox_res["toxicity_score"]
+            spam_score = tox_res["spam_score"]
+            bot_risk = tox_res["bot_risk"]
+            meta_signals = tox_res["meta_signals"]
+        else:
+            toxicity = clamp(toxic_hits * 0.35)
+            spam_score = 0.0
+            bot_risk = "low"
+            meta_signals = {
+                "account_age_days": 365,
+                "posts_per_hour": 1.0,
+                "repetition_ratio": 0.1,
+                "spam_score": 0.0,
+                "bot_risk": "low",
+            }
+
         negativity = clamp((negative_hits / max(1, total_hits)) * 0.7 + toxicity * 0.3)
         sentiment_desc = {"positive": "Olumlu duygu eğilimi algılandı.", "negative": "Olumsuz duygu eğilimi algılandı.", "neutral": "Belirgin bir duygu eğilimi algılanmadı."}[label]
         if toxicity > 0:
@@ -133,17 +163,25 @@ class RuleBasedTurkishScorer:
             toxic_desc = "Metin saldırgan içerikten söz ediyor; ancak doğrudan bir kişiye saldırı içermiyor."
         else:
             toxic_desc = "Saldırgan ifade sinyali bulunmadı."
+
         reasons = [
             f"[Kural Tabanlı Skorlama] {sentiment_desc}",
             toxic_desc,
             "Bu sonuç kural tabanlı bir prototip tahminidir; klinik değerlendirme değildir.",
         ]
+
+        if bot_risk == "high" or spam_score > 0.3:
+            reasons.append(f"Meta sinyaller: Yüksek spam/bot riski (Skor: {spam_score:.2f}, Bot Riski: {bot_risk}).")
+
         return AnalysisResult(
             content_id=content.id,
             text=content.text,
             sentiment=Sentiment(label=label, score=sentiment_score),
             toxicity_score=toxicity,
             negativity_score=negativity,
+            spam_score=spam_score,
+            bot_risk=bot_risk,
+            meta_signals=meta_signals,
             reason=reasons,
             scorer=self.get_info(),
             title=content.title,
@@ -163,9 +201,20 @@ def get_scorer(scorer_type: str | None = None) -> ContentScorer:
     """Seçilen veya MOODFEED_SCORER ortam değişkeninde belirtilen scorer sağlayıcısını döndürür."""
     mode = (scorer_type or os.getenv("MOODFEED_SCORER", "rule_based")).strip().lower()
     if mode == "berturk":
-        from .berturk_scorer import BerturkTurkishScorer
+        try:
+            from backend.berturk_scorer import BerturkTurkishScorer
+        except ImportError:
+            from berturk_scorer import BerturkTurkishScorer
         return BerturkTurkishScorer()
     return RuleBasedTurkishScorer()
 
 
 MoodScorer = RuleBasedTurkishScorer
+
+try:
+    from backend.services.toxicity_service import ToxicityAnalyzer
+except ImportError:
+    try:
+        from services.toxicity_service import ToxicityAnalyzer
+    except ImportError:
+        pass

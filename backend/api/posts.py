@@ -28,6 +28,7 @@ from backend.scoring import get_scorer
 from backend.services.auth_service import auth_service_instance
 from backend.services.mood_detector import mood_detector
 from backend.services.notification_service import notification_service
+from backend.services.rss_service import rss_service
 
 logger = logging.getLogger("moodfeed.api.posts")
 router = APIRouter(tags=["social_and_posts"])
@@ -149,24 +150,74 @@ def create_post(
     }
 
 
+@router.get("/api/posts/stats")
+@router.get("/v1/posts/stats")
+@router.get("/posts/stats")
+def get_post_stats(db: Session = Depends(get_db)) -> dict[str, Any]:
+    """Haber ve duygu istatistiklerini döner (gerçek DB toplamı, mood dağılımı, kategori dağılımı)."""
+    return rss_service.get_stats(db_session=db)
+
+
+@router.get("/api/posts")
 @router.get("/v1/posts")
 @router.get("/posts")
 def list_posts(
-    mood: str | None = Query(None, description="Filtrelenecek mood: happy, sad, angry, anxious, neutral"),
-    category: str | None = Query(None),
-    limit: int = Query(50, ge=1, le=100),
+    mood: str | None = Query(None, description="Filtrelenecek mood: calm, happy, neutral, anxious, sad, angry"),
+    category: str | None = Query(None, description="Kategori filtresi: Gündem, Teknoloji, vb."),
+    q: str | None = Query(None, description="Arama sorgusu"),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
-    """Tüm gönderileri listeler."""
+    """Tüm gönderileri sayfalama (limit & offset) ve mood/kategori filtreleriyle listeler."""
     query = db.query(Post).filter(Post.is_published.is_(True))
-    if mood:
-        query = query.filter(Post.mood_label == mood.lower().strip())
-    if category and category.lower() != "all":
-        query = query.filter(Post.category == category)
-    posts = query.order_by(Post.created_at.desc()).limit(limit).all()
+
+    if mood and mood.lower().strip() != "all":
+        norm_mood = mood.lower().strip()
+        query = query.filter(Post.mood_label == norm_mood)
+
+    if category and category.lower().strip() != "all":
+        query = query.filter(Post.category == category.strip())
+
+    if q and q.strip():
+        search_term = f"%{q.strip().lower()}%"
+        query = query.filter(
+            or_(
+                Post.content.ilike(search_term),
+                Post.title.ilike(search_term),
+                Post.author.ilike(search_term),
+                Post.source_name.ilike(search_term),
+            )
+        )
+
+    total_count = query.count()
+    posts = (
+        query.order_by(Post.published_at.desc(), Post.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    post_dicts = [p.to_dict() for p in posts]
+    has_more = (offset + len(post_dicts)) < total_count
+    next_offset = (offset + limit) if has_more else None
+
     return {
-        "count": len(posts),
-        "posts": [p.to_dict() for p in posts],
+        "items": post_dicts,
+        "posts": post_dicts,
+        "count": len(post_dicts),
+        "pagination": {
+            "total": total_count,
+            "limit": limit,
+            "offset": offset,
+            "has_more": has_more,
+            "next_offset": next_offset,
+        },
+        "filters": {
+            "mood": mood if mood and mood.lower() != "all" else None,
+            "category": category if category and category.lower() != "all" else None,
+            "search": q if q and q.strip() else None,
+        },
+        "last_ingested_at": rss_service.last_ingested_at_iso,
     }
 
 

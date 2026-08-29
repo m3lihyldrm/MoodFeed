@@ -1,5 +1,11 @@
+import sys
 from typing import Any, Literal
 from pydantic import AliasChoices, BaseModel, Field
+
+if __name__ == "backend.models":
+    sys.modules.setdefault("models", sys.modules["backend.models"])
+elif __name__ == "models":
+    sys.modules.setdefault("backend.models", sys.modules["models"])
 
 class ContentInput(BaseModel):
     """Skorlanacak sosyal medya veya haber içeriği."""
@@ -15,6 +21,7 @@ class ContentInput(BaseModel):
     category: str | None = None
     published_at: str | None = None
     image_url: str | None = None
+    user_metadata: dict[str, Any] | None = None
 
 class Interaction(BaseModel):
     """Kimlik içermeyen istemci etkileşim özeti."""
@@ -34,6 +41,13 @@ class ScorerInfo(BaseModel):
     is_experimental: bool = False
     loaded: bool = True
 
+class MetaSignals(BaseModel):
+    account_age_days: int = 365
+    posts_per_hour: float = 1.0
+    repetition_ratio: float = 0.1
+    spam_score: float = 0.0
+    bot_risk: Literal["low", "medium", "high"] = "low"
+
 class AnalysisResult(BaseModel):
     model_config = {"populate_by_name": True, "extra": "ignore"}
 
@@ -42,6 +56,9 @@ class AnalysisResult(BaseModel):
     sentiment: Sentiment
     toxicity_score: float = Field(ge=0, le=1)
     negativity_score: float = Field(ge=0, le=1)
+    spam_score: float = Field(default=0.0, ge=0, le=1)
+    bot_risk: Literal["low", "medium", "high"] = "low"
+    meta_signals: dict[str, Any] | None = None
     reason: list[str]
     scorer: ScorerInfo | None = None
     title: str | None = None

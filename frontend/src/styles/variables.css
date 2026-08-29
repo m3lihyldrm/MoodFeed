@@ -1,68 +1,263 @@
-﻿/* MoodFeed Premium SaaS Design System */
+/* ==========================================================================
+   MoodFeed — Premium AI Intelligence UI Design System & Design Tokens
+   ========================================================================== */
 :root {
-  /* Color Palette - Premium SaaS */
-  --primary: #6366F1;
-  --primary-dark: #4F46E5;
-  --primary-light: #818CF8;
-  --primary-subtle: rgba(99, 102, 241, 0.12);
+  --bg: #060813;
+  --bg-darker: #04050d;
+  --surface: #0d1224;
+  --surface-elevated: #131936;
+  --surface-soft: #182042;
+  --surface-glass: rgba(13, 18, 36, 0.72);
+  --surface-glass-elevated: rgba(19, 25, 54, 0.8);
 
-  --success: #10B981;
-  --warning: #F59E0B;
-  --danger: #EF4444;
+  --border: rgba(150, 160, 220, 0.14);
+  --border-strong: rgba(168, 85, 247, 0.32);
+  --border-subtle: rgba(150, 160, 220, 0.08);
+  --border-gradient: linear-gradient(135deg, rgba(168, 85, 247, 0.35) 0%, rgba(56, 217, 197, 0.2) 100%);
 
-  --gray-50: #F9FAFB;
-  --gray-100: #F3F4F6;
-  --gray-200: #E5E7EB;
-  --gray-300: #D1D5DB;
-  --gray-400: #9CA3AF;
-  --gray-500: #6B7280;
-  --gray-600: #4B5563;
-  --gray-700: #374151;
-  --gray-800: #1F2937;
-  --gray-900: #111827;
+  --text: #f5f7ff;
+  --muted: #9ba4c8;
+  --text-dim: #656f96;
 
-  /* Typography */
+  --purple: #a855f7;
+  --violet: #7c3aed;
+  --indigo: #6366f1;
+  --blue: #3b82f6;
+  --cyan: #38d9c5;
+  --green: #69df9b;
+  --warning: #f4c95d;
+  --danger: #f06b8b;
+
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'Fira Code', ui-monospace, monospace;
+  --font-display: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-
-  /* Radius */
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 22px;
   --radius-full: 9999px;
 
-  /* Transitions */
-  --transition-fast: 150ms ease;
-  --transition-base: 250ms ease;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.55);
+  --shadow-glow: 0 0 28px rgba(168, 85, 247, 0.18);
+  --shadow-cyan-glow: 0 0 24px rgba(56, 217, 197, 0.16);
+
+  --duration-fast: 140ms;
+  --duration-base: 240ms;
+  --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 [data-theme="dark"] {
-  --bg-primary: #0F172A;
-  --bg-secondary: #1E293B;
-  --bg-card: #1E293B;
-  --bg-input: #0F172A;
-  --text-primary: #F8FAFC;
-  --text-secondary: #94A3B8;
-  --text-muted: #64748B;
-  --border-color: #334155;
-  --border-subtle: #1E293B;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-elevated);
+  --color-surface-hover: var(--surface-soft);
+  --color-surface-subtle: rgba(255, 255, 255, 0.03);
+  --color-surface-solid: var(--surface-elevated);
+
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-border-subtle: var(--border-subtle);
+
+  --color-text-primary: var(--text);
+  --color-text-secondary: var(--muted);
+  --color-text-muted: var(--text-dim);
+  --color-text-inverse: #060813;
+
+  --color-brand: var(--purple);
+  --color-brand-hover: var(--violet);
+  --color-brand-subtle: rgba(168, 85, 247, 0.14);
+
+  --color-success: var(--green);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--indigo);
+  --color-cyan: var(--cyan);
 }
 
 [data-theme="light"] {
-  --bg-primary: #F8FAFC;
-  --bg-secondary: #FFFFFF;
-  --bg-card: #FFFFFF;
-  --bg-input: #F1F5F9;
-  --text-primary: #0F172A;
-  --text-secondary: #475569;
-  --text-muted: #94A3B8;
-  --border-color: #E2E8F0;
-  --border-subtle: #F1F5F9;
+  --color-bg: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-surface-raised: #F1F5F9;
+  --color-surface-hover: #E2E8F0;
+  --color-surface-subtle: #F8FAFC;
+  --color-surface-solid: #FFFFFF;
+
+  --color-border: #E2E8F0;
+  --color-border-strong: #CBD5E1;
+  --color-border-subtle: #F1F5F9;
+
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94A3B8;
+  --color-text-inverse: #FFFFFF;
+
+  --color-brand: #7C3AED;
+  --color-brand-hover: #6D28D9;
+  --color-brand-subtle: rgba(124, 58, 237, 0.08);
+
+  --color-success: #059669;
+  --color-warning: #D97706;
+  --color-danger: #DC2626;
+  --color-info: #2563EB;
+  --color-cyan: #0D9488;
+}
+
+/* Ambient Background Lights */
+.ambient-lights-container {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ambient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.16;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.ambient-orb-1 {
+  top: -10%;
+  right: 15%;
+  width: 520px;
+  height: 520px;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.8) 0%, rgba(124, 58, 237, 0.4) 60%, transparent 80%);
+  animation: floatOrb1 18s ease-in-out infinite alternate;
+}
+
+.ambient-orb-2 {
+  top: 45%;
+  left: -10%;
+  width: 480px;
+  height: 480px;
+  background: radial-gradient(circle, rgba(56, 217, 197, 0.7) 0%, rgba(99, 102, 241, 0.3) 60%, transparent 80%);
+  animation: floatOrb2 22s ease-in-out infinite alternate;
+}
+
+.ambient-orb-3 {
+  bottom: -15%;
+  right: 25%;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.7) 0%, rgba(168, 85, 247, 0.2) 60%, transparent 80%);
+  animation: floatOrb3 26s ease-in-out infinite alternate;
+}
+
+@keyframes floatOrb1 {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(-60px, 80px) scale(1.12); }
+}
+
+@keyframes floatOrb2 {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(80px, -60px) scale(1.08); }
+}
+
+@keyframes floatOrb3 {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(-50px, -70px) scale(1.15); }
+}
+
+/* GlassCard System */
+.glass-card {
+  background: var(--surface-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--duration-base) var(--ease-smooth);
+  position: relative;
+}
+
+.glass-card:hover {
+  border-color: rgba(168, 85, 247, 0.38);
+  box-shadow: var(--shadow-md), 0 0 20px rgba(168, 85, 247, 0.12);
+  transform: translateY(-2px);
+}
+
+/* Mood Score Ring Component */
+.mood-score-ring {
+  width: 48px;
+  height: 48px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mood-score-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.mood-score-ring-circle-bg {
+  stroke: rgba(150, 160, 220, 0.12);
+  fill: none;
+  stroke-width: 3.2;
+}
+
+.mood-score-ring-circle-val {
+  fill: none;
+  stroke-width: 3.4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s var(--ease-smooth);
+}
+
+.mood-score-ring-label {
+  position: absolute;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.72rem;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+/* Skeleton Loading Card */
+.skeleton-card {
+  background: var(--surface-glass);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-bone {
+  background: linear-gradient(90deg, rgba(150, 160, 220, 0.08) 25%, rgba(168, 85, 247, 0.14) 50%, rgba(150, 160, 220, 0.08) 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.8s infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes skeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Accessible Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .ambient-orb {
+    animation: none !important;
+  }
 }
