@@ -1,4 +1,4 @@
-﻿"""FastAPI Smoke Tests for Render Production Deployment.
+"""FastAPI Smoke Tests for Render Production Deployment.
 
 Verifies:
 1. GET /health -> 200 {"status": "ok"}
@@ -23,13 +23,29 @@ client = TestClient(app)
 def test_health_endpoint() -> None:
     res = client.get("/health")
     assert res.status_code == 200
-    assert res.json() == {"status": "ok"}
+    data = res.json()
+    assert data["status"] == "ok"
+    assert "service" in data
+    assert "environment" in data
 
 
 def test_api_health_endpoint() -> None:
     res = client.get("/api/health")
     assert res.status_code == 200
-    assert res.json() == {"status": "ok"}
+    data = res.json()
+    assert data["status"] == "ok"
+
+
+def test_cors_headers_for_vercel_origin() -> None:
+    res = client.options(
+        "/api/posts",
+        headers={
+            "Origin": "https://mood-feed-two.vercel.app",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+    assert res.status_code == 200
+    assert res.headers.get("access-control-allow-origin") == "https://mood-feed-two.vercel.app"
 
 
 def test_openapi_json_endpoint() -> None:
@@ -68,6 +84,8 @@ def test_api_posts_stats_endpoint() -> None:
     assert "posts_by_mood" in data
     assert "posts_by_category" in data
     assert isinstance(data["total_posts"], int)
+    for m in ["calm", "happy", "neutral", "anxious", "sad", "angry"]:
+        assert m in data["posts_by_mood"]
 
 
 def test_posts_direct_endpoints() -> None:
@@ -78,3 +96,20 @@ def test_posts_direct_endpoints() -> None:
     res_stats = client.get("/posts/stats")
     assert res_stats.status_code == 200
     assert "total_posts" in res_stats.json()
+
+
+def test_production_invariants_validation() -> None:
+    from backend.config import Settings
+    # Development allows default secrets
+    dev_settings = Settings(app_env="development")
+    dev_settings.validate_production_invariants()
+
+    # Production rejects default or short secrets
+    prod_settings = Settings(
+        app_env="production",
+        session_secret="dev_insecure_session_secret_replace_in_production_min32chars",
+        jwt_secret="dev_insecure_jwt_secret_replace_in_production_min32chars",
+        export_signing_secret="dev_export_signing_secret_replace_in_production_min32chars",
+    )
+    with pytest.raises(ValueError, match="PRODUCTION ERROR"):
+        prod_settings.validate_production_invariants()

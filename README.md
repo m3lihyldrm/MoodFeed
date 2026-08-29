@@ -34,33 +34,32 @@ MVP, örnek içerikleri yerel JSON dosyasından alır; kural tabanlı duygu/tone
 
 Bu prototip klinik tanı koymaz veya kullanıcının ruhsal durumunu kesin olarak bildiğini iddia etmez. Otomatik moderasyon sistemi değildir; içerik silmez, gizlemez veya kullanıcı hesabı üzerinde işlem yapmaz. Gerçek kişisel veri, API anahtarı ve harici LLM/API kullanılmaz.
 
-## Canlı Dağıtım
+## Canlı Dağıtım (Production Architecture)
 
-### 1. Supabase Kurulumu
-1. https://supabase.com → Sign up
-2. New Project → MoodFeed
-3. Settings → API → URL ve anon key kopyala
+MoodFeed production ortamında **Render (FastAPI API)** ve **Vercel (Frontend SPA)** üzerinde çalışır. Detaylı kılavuz için [DEPLOYMENT.md](file:///C:/Users/OMEN/MoodFeed-main/DEPLOYMENT.md) belgesini inceleyin.
 
-### 2. Clerk Kurulumu
-1. https://clerk.com → Sign up
-2. Create Application → MoodFeed
-3. Settings → API Keys → Keys kopyala
+### 1. Render Deploy (Backend API)
+1. https://render.com → New Web Service
+2. GitHub reposunu bağlayın (`main` branch)
+3. **Root Directory:** `backend`
+4. **Build Command:** `pip install -r requirements.txt`
+5. **Start Command:** `python -m uvicorn main:app --host 0.0.0.0 --port $PORT`
+6. **Health Check Path:** `/health`
+7. Environment Variables: `APP_ENV=production`, `CORS_ORIGINS=https://mood-feed-two.vercel.app`, `DATABASE_URL=...`
 
-### 3. Backend Railway Deploy
-1. https://railway.app → New Project
-2. Deploy from GitHub → MoodFeed
-3. Variables ekle (.env.example'dan)
-4. Deploy
+### 2. Vercel Deploy (Frontend UI)
+1. https://vercel.com → New Project
+2. GitHub reposunu bağlayın (`main` branch)
+3. **Root Directory:** `frontend`
+4. **Build Command:** `npm run build`
+5. **Output Directory:** `dist`
+6. Environment Variable: `VITE_API_BASE_URL=https://<your-render-service>.onrender.com`
 
-### 4. Frontend Vercel Deploy
-1. https://vercel.com → Add Project
-2. Import Git Repository → MoodFeed
-3. Root Directory: frontend
-4. Deploy
-
-### 5. Test
-- https://moodfeed.vercel.app
-- Kayıt ol, email doğrula, giriş yap
+### 3. Canlı Doğrulama (Smoke Test)
+- Canlı UI: `https://mood-feed-two.vercel.app`
+- Canlı Health API: `https://<your-render-service>.onrender.com/health`
+- Canlı OpenAPI: `https://<your-render-service>.onrender.com/openapi.json`
+- Canlı Swagger Docs: `https://<your-render-service>.onrender.com/docs`
 
 ## Hızlı Başlangıç & Production Ortamı
 

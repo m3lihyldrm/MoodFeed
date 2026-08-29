@@ -9,7 +9,7 @@ client = TestClient(app)
 def test_health_is_ok() -> None:
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json()["status"] == "ok"
 
 def test_scores_are_bounded_and_toxic_content_scores_higher() -> None:
     scorer = RuleBasedTurkishScorer()

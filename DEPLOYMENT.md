@@ -1,123 +1,141 @@
-# MoodFeed Dağıtım ve Çalıştırma Kılavuzu (Deployment Guide)
+﻿# MoodFeed Dağıtım ve Çalıştırma Kılavuzu (Production Runbook)
 
-Bu belge, MoodFeed projesinin yerel geliştirme, Docker konteyner ortamı ve üretim/demo sunucu ortamlarında dağıtımı için gerekli mimari bileşenleri, ortam değişkenlerini ve doğrulama adımlarını açıklar.
+Bu belge, MoodFeed uygulamasının **Local (Geliştirme)**, **Render (FastAPI Backend)** ve **Vercel (Frontend SPA)** ortamlarında eşitlik içinde, kararlı ve güvenli biçimde çalıştırılması için gerekli yapılandırma adımlarını içerir.
 
 ---
 
-## 1. Sistem Mimarisi
+## 1. Sistem ve Dağıtım Mimarisi
 
-MoodFeed 3 katmanlı, hafif ve yüksek performanslı bir mimariye sahiptir:
-
-1. **Frontend Katmanı (Statik HTML/CSS/JS):**
-   - Bağımsız, hafif Vanilla JavaScript, CSS custom properties (Editorial Calm Intelligence tasarım sistemi) ve anlamsal HTML5.
-   - Doğrudan FastAPI `FileResponse` üzerinden veya NGINX / statik dosya sunucusuyla sunulur.
-   - İstemci tarafında `MoodFeedApiAdapter` ile REST API'ye bağlanır.
-
-2. **Backend API Katmanı (FastAPI / Uvicorn / Python 3.11+):**
-   - Asenkron ve tip güvenli REST API uç noktaları (`/feed`, `/rerank`, `/analyze`, `/v1/preferences/me`, vb.).
-   - Modüler kural tabanlı skorlayıcı (`RuleBasedTurkishScorer`) ve opsiyonel BERTurk çıkarım sağlayıcısı (`BerturkTurkishScorer`).
-   - SUS (System Usability Scale) hesaplama motoru ve formül enjeksiyonuna karşı korumalı CSV/JSON export altyapısı.
-
-3. **Veritabanı Katmanı (PostgreSQL 16 & SQLAlchemy):**
-   - PostgreSQL 16 ilişkisel veritabanı.
-   - `users`, `user_preferences` (JSONB destekli kaynak sessize alma) ve `interaction_logs` tabloları.
-   - SQLAlchemy 2.0 ORM katmanı ile tip güvenli oturum ve veri yönetimi.
+MoodFeed, ayrık ve yüksek performanslı 2 ana dağıtım katmanından oluşur:
 
 ```
-[ Tarayıcı / İstemci (HTML/CSS/JS) ]
-                 │
-                 ▼ HTTP / JSON
-[ FastAPI Backend (Uvicorn / Python 3.14) ]
-   ├── Scoring & Reranking Engine (Rule-based / BERTurk fallback)
-   ├── Explanation & Decision Trace Service
-   └── Preferences Service (SQLAlchemy 2.0)
-                 │
-                 ▼ PostgreSQL Wire Protocol
-[ PostgreSQL 16 Veritabanı (moodfeed) ]
-   ├── users
-   ├── user_preferences (JSONB)
-   └── interaction_logs (JSONB)
+┌────────────────────────────────────────────────────────┐
+│                   VERCEL (Frontend)                    │
+│             https://mood-feed-two.vercel.app           │
+│   • Modern SPA (Vite / Vanilla JS / CSS Design System) │
+│   • VITE_API_BASE_URL ile doğrudan Render API'ye erişir│
+└───────────────────────────┬────────────────────────────┘
+                            │ HTTPS / REST / JSON
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│                    RENDER (Backend)                    │
+│          https://<your-service>.onrender.com           │
+│   • FastAPI & Uvicorn (Python 3.11+)                   │
+│   • Lifespan & Non-blocking Async Background RSS Task  │
+│   • Kural Tabanlı Duygu Analizi & Mood Sıralama        │
+│   • CORS İzinli: https://mood-feed-two.vercel.app      │
+└───────────────────────────┬────────────────────────────┘
+                            │ SQLAlchemy 2.0 (Pool Pre-ping)
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│                 VERİTABANI (Persistence)               │
+│   • Production: PostgreSQL 16 (Render/Neon/Supabase)   │
+│   • Local Dev: SQLite (moodfeed_local.db) Fallback     │
+│   • 90 Günlük Otomatik RSS Arşiv Saklama               │
+└────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. Ortam Değişkenleri (Environment Variables)
+## 2. Render Deployment Runbook (FastAPI Backend)
 
-`.env.example` dosyasından türetilen yapılandırma parametreleri:
+### Dashboard Ayarları
+- **Service Type:** Web Service
+- **Environment:** Python 3
+- **Branch:** `main`
+- **Root Directory:** `backend`
+- **Build Command:** `pip install -r requirements.txt`
+- **Start Command:** `python -m uvicorn main:app --host 0.0.0.0 --port $PORT`
+- **Health Check Path:** `/health`
+- **Auto-Deploy:** Yes
 
-| Değişken | Varsayılan Değer | Açıklama |
+### Environment Variables Tablosu (Render Dashboard)
+
+| Değişken Adı | Örnek / Değer | Açıklama |
 | --- | --- | --- |
-| `APP_ENV` | `development` | Çalışma ortamı (`development`, `staging`, `production`). |
-| `APP_NAME` | `MoodFeed` | Uygulama adı. |
-| `HOST` | `0.0.0.0` | Dinlenecek ağ adresi. |
-| `PORT` | `8000` | Dinlenecek port numarası. |
-| `DATABASE_URL` | `postgresql://moodfeed:moodfeed@localhost:5432/moodfeed` | PostgreSQL bağlantı URL'i. |
-| `DATABASE_POOL_SIZE` | `10` | SQLAlchemy bağlantı havuzu boyutu. |
-| `DATABASE_MAX_OVERFLOW` | `20` | Havuz aşım bağlantı limiti. |
-| `MOODFEED_SCORER` | `rule_based` | Aktif skorlayıcı modu (`rule_based`, `berturk`). |
-| `MODEL_PROVIDER` | `rule_based` | ML sağlayıcı seçimi. |
-| `LOG_LEVEL` | `INFO` | Günlükleme seviyesi (`DEBUG`, `INFO`, `WARNING`, `ERROR`). |
-| `LOG_FORMAT` | `json` | Günlükleme formatı (`json`, `text`). |
+| `APP_ENV` | `production` | Production modunu aktifleştirir. |
+| `PORT` | `10000` | Render tarafından otomatik atanır. |
+| `CORS_ORIGINS` | `https://mood-feed-two.vercel.app,http://localhost:8000,http://127.0.0.1:8000` | Frontend kökenlerine izin verir. |
+| `DATABASE_URL` | `postgresql+psycopg2://user:pass@host:5432/dbname` | Kalıcı PostgreSQL bağlantısı (`postgres://` otomatik dönüştürülür). |
+| `SESSION_SECRET` | *(32+ karakter rastgele dize)* | Oturum güvenliği için zorunlu üretim anahtarı. |
+| `JWT_SECRET` | *(32+ karakter rastgele dize)* | JWT token imzalama anahtarı. |
+| `EXPORT_SIGNING_SECRET` | *(32+ karakter rastgele dize)* | Veri dışa aktarım imzalama anahtarı. |
+| `RSS_INGESTION_ENABLED` | `true` | Arka plan RSS çekim servisini çalıştırır. |
+| `DATA_RETENTION_DAYS` | `90` | Eski RSS verilerinin saklanma süresi (gün). |
+
+### Render Smoke Test Adımları
+Render deploy'u tamamlandıktan sonra aşağıdaki uç noktaları test edin:
+
+```bash
+# 1. Health Liveness (HTTP 200)
+curl -i https://<render-service>.onrender.com/health
+# Yanıt: {"status":"ok","service":"moodfeed-api","environment":"production","version":"1.0.0"}
+
+# 2. OpenAPI Şeması (HTTP 200)
+curl -i https://<render-service>.onrender.com/openapi.json
+
+# 3. Swagger UI Dokümantasyonu (HTTP 200)
+curl -i https://<render-service>.onrender.com/docs
+
+# 4. Haberler ve Sayfalama (HTTP 200)
+curl -i "https://<render-service>.onrender.com/api/posts?limit=5&offset=0"
+
+# 5. İstatistikler & 6 Mood Dağılımı (HTTP 200)
+curl -i https://<render-service>.onrender.com/api/posts/stats
+
+# 6. MoodFeed Feed Sıralama (HTTP 200)
+curl -i https://<render-service>.onrender.com/api/feed
+```
 
 ---
 
-## 3. Dağıtım Adımları
+## 3. Vercel Deployment Runbook (Frontend UI)
 
-### A. Docker Compose ile Hızlı Dağıtım (Önerilen)
+### Dashboard Ayarları
+- **Framework Preset:** Vite (veya Other)
+- **Root Directory:** `frontend`
+- **Build Command:** `npm run build`
+- **Output Directory:** `dist`
+- **Branch:** `main`
 
-```bash
-# Servisleri derleyip arka planda çalıştırın
-docker compose up -d --build
+### Environment Variables Tablosu (Vercel Dashboard)
 
-# Veritabanı sağlık kontrolünü doğrulayın
-docker compose ps
-```
+| Değişken Adı | Değer | Açıklama |
+| --- | --- | --- |
+| `VITE_API_BASE_URL` | `https://<your-render-service>.onrender.com` | Render'da koşan FastAPI backend public URL'i. |
 
-Erişim:
-- Arayüz: `http://localhost:8000/`
-- API Dokümantasyonu: `http://localhost:8000/docs`
+### Vercel Smoke Test Adımları
+1. `https://mood-feed-two.vercel.app` adresini tarayıcıda açın.
+2. Tarayıcı Geliştirici Araçları (DevTools) -> **Network** sekmesini açın.
+3. `/api/posts` ve `/api/posts/stats` isteklerinin başarıyla HTTP 200 döndüğünü ve feed kartlarının gerçek RSS verisiyle render edildiğini doğrulayın.
+4. Mood filtre butonlarına (Sakin, Neşeli, Kaygılı, Üzgün, Kızgın) tıklayarak filtrelemenin anında çalıştığını teyit edin.
+5. "Daha Fazla Göster" butonuna tıklayarak sayfalama (pagination) isteğinin yeni içerikleri getirdiğini doğrulayın.
 
-### B. Yerel Geliştirme Ortamında Manuel Başlatma
+---
 
-```bash
-# 1. PostgreSQL veritabanını Docker ile ayağa kaldırın
-docker compose up -d db
+## 4. Free-Tier ve Veritabanı Kısıtları
 
-# 2. Şemayı veritabanına uygulayın
-psql "$DATABASE_URL" -f backend/db/schema.sql
+- **Render Free Web Service Uyku Modu (Cold Start):**
+  Render Free katmanı 15 dakika hareketsiz kaldığında servisi uykuya alır. İlk istek geldiğinde sunucunun uyanması 30-50 saniye sürebilir. Frontend'de bu durum algılanır, iskelet yükleyici (skeleton) ve "Render backend servisi uyanıyor" bilgilendirmesi ile kullanıcıya güvenli deneyim sunulur.
 
-# 3. Python sanal ortamını hazırlayın ve paketleri kurun
-python -m venv .venv
-# Windows:
-.venv\Scripts\Activate.ps1
-# Linux/macOS:
-# source .venv/bin/activate
+- **Kalıcı Veri & SQLite vs PostgreSQL:**
+  Render Free instance'lar geçici (ephemeral) dosya sistemine sahiptir. Sunucu yeniden başladığında yerel SQLite dosyası sıfırlanabilir. Üretim ortamında RSS arşivinin ve kullanıcı tercihlerinin kalıcı olarak birikmesi için harici bir PostgreSQL (Render Postgres, Neon, Supabase) `DATABASE_URL` olarak tanımlanmalıdır.
 
+---
+
+## 5. Yerel Geliştirme (Local Dev)
+
+Yerel geliştirme ortamında tek komutla hem backend hem frontend çalıştırılabilir:
+
+```powershell
+# 1. Sanal ortamı etkinleştirin ve gereksinimleri kurun
 python -m pip install -r backend/requirements.txt
 
-# 4. Sunucuyu başlatın
-uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+# 2. Uvicorn sunucusunu başlatın
+cd backend
+python -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
----
-
-## 4. Test ve Doğrulama Komutları
-
-Tüm sistem bileşenlerinin, modellerin ve uç noktaların hatasız çalıştığını doğrulamak için:
-
-```bash
-# 1. Kod tabanının derleme denetimi (0 hata beklenir)
-python -m compileall backend tests scripts
-
-# 2. Tam test paketini çalıştırın
-python -m pytest -v
-```
-
----
-
-## 5. Güvenlik ve Gizlilik Prensipleri (Privacy by Design)
-
-- **Sıfır Kalıcı İstemci Depolaması:** Tarayıcı tarafında `localStorage` veya izleme çerezi kullanılmaz; demo oturum durumu RAM belleğinde işlenir.
-- **CSV Formül Enjeksiyonu Koruması:** Dışa aktarılan dosyalarda `=`, `+`, `-`, `@`, `\t`, `\r` karakterleriyle başlayan hücreler `'` ile sanitize edilir (OWASP ASVS uyumlu).
-- **Açıklanabilirlik:** Sıralama kararları matematiksel formül ve dikey karar iziyle şeffaf şekilde kullanıcıya sunulur.
-- **Kullanıcı Kontrolü:** Kullanıcı istediği an sıralamayı geri alabilir (`revert`), kaynakları sessize alabilir veya MoodFeed filtresini devre dışı bırakabilir.
+- Yerel Arayüz: `http://127.0.0.1:8000/`
+- Yerel API Dokümantasyonu: `http://127.0.0.1:8000/docs`
+- Yerel Health Kontrolü: `http://127.0.0.1:8000/health`

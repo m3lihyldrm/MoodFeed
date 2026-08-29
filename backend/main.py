@@ -176,9 +176,9 @@ for r in routers:
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=app_settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -333,8 +333,13 @@ def demo_page():
 
 @app.get("/health")
 @app.get("/api/health")
-def health() -> dict[str, str]:
-    return {"status": "ok"}
+def health() -> dict[str, Any]:
+    return {
+        "status": "ok",
+        "service": "moodfeed-api",
+        "environment": app_settings.app_env,
+        "version": app_settings.app_version,
+    }
 
 @app.get("/feed", response_model=RerankResponse)
 @app.get("/api/feed", response_model=RerankResponse)

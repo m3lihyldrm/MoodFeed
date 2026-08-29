@@ -2994,6 +2994,21 @@
 
   <!-- JAVASCRIPT APPLICATION LOGIC -->
   <script>
+    const API_BASE_URL = (
+      (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("api_url")) ||
+      (typeof window !== "undefined" && window.localStorage && window.localStorage.getItem("MOODFEED_API_BASE_URL")) ||
+      (typeof window !== "undefined" && window.MOODFEED_API_BASE_URL) ||
+      (typeof process !== "undefined" && process.env && (process.env.VITE_API_BASE_URL || process.env.REACT_APP_API_BASE_URL)) ||
+      ""
+    ).replace(/\/$/, "");
+
+    function getApiUrl(endpoint) {
+      if (!endpoint) return "";
+      const cleanPath = endpoint.startsWith("/") ? endpoint : "/" + endpoint;
+      if (!API_BASE_URL) return cleanPath;
+      return `${API_BASE_URL}${cleanPath}`;
+    }
+
     const appState = {
       activeProfile: "balanced",
       activeScenario: "default",
@@ -3232,12 +3247,12 @@
         return h;
       },
       async getPreferences() {
-        const res = await fetch(`/v1/preferences?user_id=${this.userId}`, { headers: this.headers });
+        const res = await fetch(getApiUrl(`/v1/preferences?user_id=${this.userId}`), { headers: this.headers });
         if (!res.ok) throw new Error('Preferences fetch failed');
         return res.json();
       },
       async updatePreferences(payload) {
-        const res = await fetch(`/v1/preferences?user_id=${this.userId}`, {
+        const res = await fetch(getApiUrl(`/v1/preferences?user_id=${this.userId}`), {
           method: 'PUT',
           headers: { ...this.headers, 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -3744,7 +3759,7 @@
 
     async function fetchActivity() {
       try {
-        const res = await fetch("/v1/activity?limit=6");
+        const res = await fetch(getApiUrl("/v1/activity?limit=6"));
         if (res.ok) {
           const data = await res.json();
           const list = document.getElementById("widget-activity-list");
@@ -3772,7 +3787,7 @@
 
     async function fetchOnlineUsers() {
       try {
-        const res = await fetch("/v1/online");
+        const res = await fetch(getApiUrl("/v1/online"));
         if (res.ok) {
           const data = await res.json();
           if (document.getElementById("online-counter-text") && data.online_count) {
@@ -3806,7 +3821,7 @@
 
     async function fetchNotifications() {
       try {
-        const res = await fetch("/v1/notifications");
+        const res = await fetch(getApiUrl("/v1/notifications"));
         if (res.ok) {
           const data = await res.json();
           const badge = document.getElementById("topbar-notif-badge");
@@ -3881,7 +3896,7 @@
         const headers = { "Content-Type": "application/json" };
         if (appState.token) headers["Authorization"] = `Bearer ${appState.token}`;
 
-        const res = await fetch("/v1/posts", {
+        const res = await fetch(getApiUrl("/v1/posts"), {
           method: "POST",
           headers,
           body: JSON.stringify({
@@ -3924,7 +3939,7 @@
         const headers = { "Content-Type": "application/json" };
         if (appState.token) headers["Authorization"] = `Bearer ${appState.token}`;
 
-        const res = await fetch("/v1/posts", {
+        const res = await fetch(getApiUrl("/v1/posts"), {
           method: "POST",
           headers,
           body: JSON.stringify({ content, category })
@@ -3948,7 +3963,7 @@
         if (appState.token) headers["Authorization"] = `Bearer ${appState.token}`;
         const userId = appState.currentUser?.id || "00000000-0000-0000-0000-000000000001";
 
-        await fetch("/v1/interactions", {
+        await fetch(getApiUrl("/v1/interactions"), {
           method: "POST",
           headers,
           body: JSON.stringify({
@@ -4024,7 +4039,7 @@
       try {
         const headers = {};
         if (appState.token) headers["Authorization"] = `Bearer ${appState.token}`;
-        await fetch(`/v1/users/${encodeURIComponent(targetUserId)}/follow`, { method, headers });
+        await fetch(getApiUrl(`/v1/users/${encodeURIComponent(targetUserId)}/follow`), { method, headers });
       } catch (err) {}
     }
 
@@ -4042,7 +4057,7 @@
       listContainer.innerHTML = `<div style="font-size: 0.76rem; color: var(--muted);">Yorumlar yükleniyor...</div>`;
 
       try {
-        const res = await fetch(`/v1/posts/${encodeURIComponent(cid)}/comments`);
+        const res = await fetch(getApiUrl(`/v1/posts/${encodeURIComponent(cid)}/comments`));
         if (res.ok) {
           const data = await res.json();
           appState.commentsMap[cid] = data.comments || [];
@@ -4094,7 +4109,7 @@
         const headers = { "Content-Type": "application/json" };
         if (appState.token) headers["Authorization"] = `Bearer ${appState.token}`;
 
-        const res = await fetch(`/v1/posts/${encodeURIComponent(cid)}/comments`, {
+        const res = await fetch(getApiUrl(`/v1/posts/${encodeURIComponent(cid)}/comments`), {
           method: "POST",
           headers,
           body: JSON.stringify({ content: text })
@@ -4141,7 +4156,7 @@
       if (aiText) {
         aiText.textContent = "Kural tabanlı açıklama: Bu içerik akışınızın dengeli ve sakin kalması için belirlenen ağırlık katsayılarıyla sıralandı.";
         try {
-          const res = await fetch(`/v1/explain/${contentId}?profile=${encodeURIComponent(appState.activeProfile)}&scenario=${encodeURIComponent(appState.activeScenario)}`);
+          const res = await fetch(getApiUrl(`/v1/explain/${contentId}?profile=${encodeURIComponent(appState.activeProfile)}&scenario=${encodeURIComponent(appState.activeScenario)}`));
           if (res.ok) {
             const data = await res.json();
             aiText.textContent = data.explanation || (item.explanation ? item.explanation.observed : "İçerik tercihlerinize göre düzenlendi.");
@@ -4437,7 +4452,7 @@
         const qParam = appState.searchQuery ? `&q=${encodeURIComponent(appState.searchQuery)}` : "";
 
         const url = `/api/posts?limit=${appState.limit}&offset=${appState.offset}${moodParam}${catParam}${qParam}`;
-        const response = await fetch(url, { signal: appState.activeAbortController ? appState.activeAbortController.signal : undefined });
+        const response = await fetch(getApiUrl(url), { signal: appState.activeAbortController ? appState.activeAbortController.signal : undefined });
 
         if (response.ok) {
           const data = await response.json();
@@ -4517,9 +4532,9 @@
             container.innerHTML = `
               <div class="card" style="text-align: center; padding: 40px 20px; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 10px;">
                 <div style="font-size: 2rem;">⚠️</div>
-                <h3 style="font-size: 1rem; color: var(--text); font-weight: 700; margin: 0;">Akış yüklenirken bir sorun oluştu</h3>
-                <p style="font-size: 0.82rem; margin: 0;">Sunucuyla bağlantı kurulamadı. Lütfen tekrar deneyin.</p>
-                <button class="btn btn-primary btn-sm" onclick="loadFeed({ reset: true })" style="margin-top: 6px;">Tekrar Dene</button>
+                <h3 style="font-size: 1rem; color: var(--text); font-weight: 700; margin: 0;">Haber akışına şu an erişilemiyor</h3>
+                <p style="font-size: 0.82rem; margin: 0; max-width: 420px; line-height: 1.4;">Render backend servisi uyanıyor veya bağlantı kurulamadı. Lütfen birkaç saniye sonra tekrar deneyin.</p>
+                <button class="btn btn-primary btn-sm" onclick="loadFeed({ reset: true })" style="margin-top: 6px;">Yeniden Dene</button>
               </div>
             `;
           }
@@ -4546,7 +4561,7 @@
         const qParam = appState.searchQuery ? `&q=${encodeURIComponent(appState.searchQuery)}` : "";
 
         const url = `/api/posts?limit=${appState.limit}&offset=${appState.offset}${moodParam}${catParam}${qParam}`;
-        const response = await fetch(url);
+        const response = await fetch(getApiUrl(url));
         if (response.ok) {
           const data = await response.json();
           const items = data.items || data.posts || [];
@@ -4628,7 +4643,7 @@
 
     async function fetchPostStats() {
       try {
-        const res = await fetch("/api/posts/stats");
+        const res = await fetch(getApiUrl("/api/posts/stats"));
         if (res.ok) {
           const data = await res.json();
           const totalEl = document.getElementById("total-posts");
@@ -4648,7 +4663,7 @@
       appState.moodfeedEnabled = e.target.checked;
       document.getElementById("toggle-label-text").textContent = appState.moodfeedEnabled ? "MoodFeed Açık" : "MoodFeed Kapalı";
       try {
-        await fetch("/settings/toggle", {
+        await fetch(getApiUrl("/settings/toggle"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ enabled: appState.moodfeedEnabled })

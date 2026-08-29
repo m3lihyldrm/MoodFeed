@@ -73,6 +73,8 @@ class Settings(BaseModel):
     workers: int = 2
     cors_origins: list[str] = Field(
         default_factory=lambda: [
+            "https://mood-feed-two.vercel.app",
+            "https://moodfeed.vercel.app",
             "http://localhost:3000",
             "http://127.0.0.1:3000",
             "http://localhost:8000",
@@ -216,22 +218,42 @@ def load_settings_from_env() -> Settings:
     env_vars["workers"] = get_env_int("WORKERS", 2)
     env_vars["csrf_origin"] = os.getenv("CSRF_ORIGIN", "http://localhost:8000")
 
-    cors_str = os.getenv("CORS_ORIGINS", "")
+    cors_str = os.getenv("CORS_ORIGINS", "").strip()
     if cors_str:
-        origins = [orig.strip() for orig in cors_str.split(",") if orig.strip()]
-        if origins:
-            env_vars["cors_origins"] = origins
+        if cors_str.startswith("[") and cors_str.endswith("]"):
+            try:
+                import json
+                parsed = json.loads(cors_str)
+                if isinstance(parsed, list):
+                    env_vars["cors_origins"] = [str(x).strip() for x in parsed if str(x).strip()]
+                else:
+                    env_vars["cors_origins"] = [cors_str]
+            except Exception:
+                origins = [orig.strip().strip("[]\"'") for orig in cors_str.split(",") if orig.strip().strip("[]\"'")]
+                env_vars["cors_origins"] = origins
+        else:
+            origins = [orig.strip().strip("\"'") for orig in cors_str.split(",") if orig.strip().strip("\"'")]
+            if origins:
+                env_vars["cors_origins"] = origins
     else:
         env_vars["cors_origins"] = [
+            "https://mood-feed-two.vercel.app",
+            "https://moodfeed.vercel.app",
             "http://localhost:3000",
             "http://127.0.0.1:3000",
             "http://localhost:8000",
             "http://127.0.0.1:8000",
-            "https://moodfeed.vercel.app",
-            "*",
         ]
 
-    env_vars["database_url"] = os.getenv("DATABASE_URL", "postgresql://moodfeed_user:dev_pass@localhost:5432/moodfeed_db")
+    # Ensure production Vercel apps are always permitted
+    for required_origin in ("https://mood-feed-two.vercel.app", "https://moodfeed.vercel.app"):
+        if required_origin not in env_vars.get("cors_origins", []):
+            env_vars.setdefault("cors_origins", []).append(required_origin)
+
+    raw_db_url = os.getenv("DATABASE_URL", "sqlite:///./moodfeed_local.db")
+    if raw_db_url.startswith("postgres://"):
+        raw_db_url = raw_db_url.replace("postgres://", "postgresql+psycopg2://", 1)
+    env_vars["database_url"] = raw_db_url
     env_vars["database_pool_size"] = get_env_int("DATABASE_POOL_SIZE", 10)
     env_vars["database_max_overflow"] = get_env_int("DATABASE_MAX_OVERFLOW", 20)
     env_vars["database_timeout_seconds"] = get_env_int("DATABASE_TIMEOUT_SECONDS", 30)
